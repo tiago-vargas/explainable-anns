@@ -149,9 +149,9 @@ def main():
             df[method][relaxe_constraints]['milp_time'].extend([min(time_list), f'{mean(time_list)} +- {stdev(time_list)}', max(time_list)])
             df[method][relaxe_constraints]['build_time'].extend([min(codify_network_time), f'{mean(codify_network_time)} +- {stdev(codify_network_time)}', max(codify_network_time)])
 
-            print(f'Explication sizes:\nm: {min(len_list)}\na: {mean(len_list)} +- {stdev(len_list)}\nM: {max(len_list)}')
-            print(f'Time:\nm: {min(time_list)}\na: {mean(time_list)} +- {stdev(time_list)}\nM: {max(time_list)}')
-            print(f'Build Time:\nm: {min(codify_network_time)}\na: {mean(codify_network_time)} +- {stdev(codify_network_time)}\nM: {max(codify_network_time)}')
+            print_statistics(len_list, 'Explication sizes')
+            print_statistics(time_list, 'Time')
+            print_statistics(codify_network_time, 'Build Time')
 
     df = {
         # 'fischetti_relaxe_size': df['fischetti'][True]['size'],
@@ -173,6 +173,12 @@ def main():
         index_label.extend([f"{dataset['dir_path']}_m", f"{dataset['dir_path']}_a", f"{dataset['dir_path']}_M"])
     df = pd.DataFrame(data=df, index=index_label)
     df.to_csv('results2.csv')
+
+def print_statistics(list, title: str):
+    print(title + ':')
+    print(f'\tm: {min(list)}')
+    print(f'\ta: {mean(list)} +- {stdev(list)}')
+    print(f'\tM: {max(list)}')
 
 
 if __name__ == '__main__':
