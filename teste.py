@@ -46,10 +46,10 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
 
     if method == 'tjeng':
         mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
-                                                         output_bounds)
+                                              output_bounds)
     else:
         mdl = insert_output_constraints_fischetti(mdl, output_variables, network_output,
-                                                                   binary_variables)
+                                                  binary_variables)
 
     for i in range(len(network_input[0])):
         mdl.remove_constraint(input_constraints[i])
@@ -62,27 +62,37 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
 
 
 def main():
-    datasets = [{'dir_path': 'australian', 'n_classes': 2},
-                {'dir_path': 'auto', 'n_classes': 5},
-                {'dir_path': 'backache', 'n_classes': 2},
-                {'dir_path': 'breast-cancer', 'n_classes': 2},
-                {'dir_path': 'cleve', 'n_classes': 2},
-                {'dir_path': 'cleveland', 'n_classes': 5},
-                {'dir_path': 'glass', 'n_classes': 5}, {'dir_path': 'glass2', 'n_classes': 2},
-                {'dir_path': 'heart-statlog', 'n_classes': 2}, {'dir_path': 'hepatitis', 'n_classes': 2},
-                {'dir_path': 'spect', 'n_classes': 2},
-                {'dir_path': 'voting', 'n_classes': 2}
-                ]
+    datasets = [
+        # {'dir_path': 'australian', 'n_classes': 2},
+        # {'dir_path': 'auto', 'n_classes': 5},
+        # {'dir_path': 'backache', 'n_classes': 2},
+        # {'dir_path': 'breast-cancer', 'n_classes': 2},
+        # {'dir_path': 'cleve', 'n_classes': 2},
+        # {'dir_path': 'cleveland', 'n_classes': 5},
+        {'dir_path': 'glass', 'n_classes': 5},
+        # {'dir_path': 'glass2', 'n_classes': 2},
+        # {'dir_path': 'heart-statlog', 'n_classes': 2}, {'dir_path': 'hepatitis', 'n_classes': 2},
+        # {'dir_path': 'spect', 'n_classes': 2},
+        # {'dir_path': 'voting', 'n_classes': 2}
+    ]
 
-    configurations = [{'method': 'fischetti', 'relaxe_constraints': True},
-                      {'method': 'fischetti', 'relaxe_constraints': False},
-                      {'method': 'tjeng', 'relaxe_constraints': True},
-                      {'method': 'tjeng', 'relaxe_constraints': False}]
+    configurations = [
+        # {'method': 'fischetti', 'relaxe_constraints': True},
+        {'method': 'fischetti', 'relaxe_constraints': False},
+        # {'method': 'tjeng', 'relaxe_constraints': True},
+        # {'method': 'tjeng', 'relaxe_constraints': False}
+    ]
 
-    df = {'fischetti': {True: {'size': [], 'milp_time': [], 'build_time': []},
-                        False: {'size': [], 'milp_time': [], 'build_time': []}},
-          'tjeng': {True: {'size': [], 'milp_time': [], 'build_time': []},
-                    False: {'size': [], 'milp_time': [], 'build_time': []}}}
+    df = {
+        'fischetti': {
+            True:  {'size': [], 'milp_time': [], 'build_time': []},
+            False: {'size': [], 'milp_time': [], 'build_time': []}
+        },
+        'tjeng': {
+            True:  {'size': [], 'milp_time': [], 'build_time': []},
+            False: {'size': [], 'milp_time': [], 'build_time': []}
+        }
+    }
 
     for dataset in datasets:
         dir_path = dataset['dir_path']
@@ -131,6 +141,10 @@ def main():
 
                 len_list.append(len(explanation))
 
+                for restriction in explanation:
+                    print(restriction._name)
+                    print(restriction)
+
             df[method][relaxe_constraints]['size'].extend([min(len_list), f'{mean(len_list)} +- {stdev(len_list)}', max(len_list)])
             df[method][relaxe_constraints]['milp_time'].extend([min(time_list), f'{mean(time_list)} +- {stdev(time_list)}', max(time_list)])
             df[method][relaxe_constraints]['build_time'].extend([min(codify_network_time), f'{mean(codify_network_time)} +- {stdev(codify_network_time)}', max(codify_network_time)])
@@ -139,18 +153,20 @@ def main():
             print(f'Time:\nm: {min(time_list)}\na: {mean(time_list)} +- {stdev(time_list)}\nM: {max(time_list)}')
             print(f'Build Time:\nm: {min(codify_network_time)}\na: {mean(codify_network_time)} +- {stdev(codify_network_time)}\nM: {max(codify_network_time)}')
 
-    df = {'fischetti_relaxe_size': df['fischetti'][True]['size'],
-          'fischetti_relaxe_time': df['fischetti'][True]['milp_time'],
-          'fischetti_relaxe_build_time': df['fischetti'][True]['build_time'],
-          'fischetti_not_relaxe_size': df['fischetti'][False]['size'],
-          'fischetti_not_relaxe_time':  df['fischetti'][False]['milp_time'],
-          'fischetti_not_relaxe_build_time': df['fischetti'][False]['build_time'],
-          'tjeng_relaxe_size': df['tjeng'][True]['size'],
-          'tjeng_relaxe_time': df['tjeng'][True]['milp_time'],
-          'tjeng_relaxe_build_time': df['tjeng'][True]['build_time'],
-          'tjeng_not_relaxe_size': df['tjeng'][False]['size'],
-          'tjeng_not_relaxe_time': df['tjeng'][False]['milp_time'],
-          'tjeng_not_relaxe_build_time': df['tjeng'][False]['build_time']}
+    df = {
+        # 'fischetti_relaxe_size': df['fischetti'][True]['size'],
+        # 'fischetti_relaxe_time': df['fischetti'][True]['milp_time'],
+        # 'fischetti_relaxe_build_time': df['fischetti'][True]['build_time'],
+        'fischetti_not_relaxe_size': df['fischetti'][False]['size'],
+        'fischetti_not_relaxe_time':  df['fischetti'][False]['milp_time'],
+        'fischetti_not_relaxe_build_time': df['fischetti'][False]['build_time'],
+        # 'tjeng_relaxe_size': df['tjeng'][True]['size'],
+        # 'tjeng_relaxe_time': df['tjeng'][True]['milp_time'],
+        # 'tjeng_relaxe_build_time': df['tjeng'][True]['build_time'],
+        # 'tjeng_not_relaxe_size': df['tjeng'][False]['size'],
+        # 'tjeng_not_relaxe_time': df['tjeng'][False]['milp_time'],
+        # 'tjeng_not_relaxe_build_time': df['tjeng'][False]['build_time']
+    }
 
     index_label = []
     for dataset in datasets:
