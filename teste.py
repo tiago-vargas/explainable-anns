@@ -112,15 +112,15 @@ def main():
             model_path = f'datasets/{dir_path}/model_2layers_{dir_path}.h5'
             model = tf.keras.models.load_model(model_path)
 
-            codify_network_time = []
+            network_codifying_times = []
             for _ in range(10):
                 start = time()
                 mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
-                codify_network_time.append(time() - start)
-                print(codify_network_time[-1])
+                network_codifying_times.append(time() - start)
+                print(network_codifying_times[-1])
 
-            time_list = []
-            len_list = []
+            minimal_explanation_times = []
+            explanation_lengths = []
             data = data.to_numpy()
             for i in range(data.shape[0]):
                 #if i % 50 == 0:
@@ -132,26 +132,25 @@ def main():
                 network_output = tf.argmax(network_output)
 
                 mdl_aux = mdl.clone()
-                start = time()
 
+                start = time()
                 explanation = get_miminal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
+                minimal_explanation_times.append(time() - start)
 
-                time_list.append(time() - start)
-
-                len_list.append(len(explanation))
+                explanation_lengths.append(len(explanation))
 
                 for restriction in explanation:
                     print(restriction._name)
                     print(restriction)
 
-            df[method][relaxe_constraints]['size'].extend([min(len_list), f'{mean(len_list)} +- {stdev(len_list)}', max(len_list)])
-            df[method][relaxe_constraints]['milp_time'].extend([min(time_list), f'{mean(time_list)} +- {stdev(time_list)}', max(time_list)])
-            df[method][relaxe_constraints]['build_time'].extend([min(codify_network_time), f'{mean(codify_network_time)} +- {stdev(codify_network_time)}', max(codify_network_time)])
+            df[method][relaxe_constraints]['size'].extend([min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}', max(explanation_lengths)])
+            df[method][relaxe_constraints]['milp_time'].extend([min(minimal_explanation_times), f'{mean(minimal_explanation_times)} +- {stdev(minimal_explanation_times)}', max(minimal_explanation_times)])
+            df[method][relaxe_constraints]['build_time'].extend([min(network_codifying_times), f'{mean(network_codifying_times)} +- {stdev(network_codifying_times)}', max(network_codifying_times)])
 
-            print_statistics(len_list, 'Explication sizes')
-            print_statistics(time_list, 'Time')
-            print_statistics(codify_network_time, 'Build Time')
+            print_statistics(explanation_lengths, 'Explanation size')
+            print_statistics(minimal_explanation_times, 'Explanation time')
+            print_statistics(network_codifying_times, 'Build time')
 
     df = {
         # 'fischetti_relaxe_size': df['fischetti'][True]['size'],
@@ -171,6 +170,7 @@ def main():
     index_label = []
     for dataset in datasets:
         index_label.extend([f"{dataset['dir_path']}_m", f"{dataset['dir_path']}_a", f"{dataset['dir_path']}_M"])
+
     df = pd.DataFrame(data=df, index=index_label)
     df.to_csv('results2.csv')
 
