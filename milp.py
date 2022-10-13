@@ -201,11 +201,11 @@ def get_domain_and_bounds_inputs(dataframe):
 
 if __name__ == '__main__':
     path_dir = 'glass'
-    #model = tf.keras.models.load_model(f'datasets\\{path_dir}\\model_{path_dir}.h5')
-    model = tf.keras.models.load_model(f'datasets\\{path_dir}\\teste.h5')
+    #model = tf.keras.models.load_model(f'datasets/{path_dir}/model_{path_dir}.h5')
+    model = tf.keras.models.load_model(f'datasets/{path_dir}/teste.h5')
 
-    data_test = pd.read_csv(f'datasets\\{path_dir}\\test.csv')
-    data_train = pd.read_csv(f'datasets\\{path_dir}\\train.csv')
+    data_test = pd.read_csv(f'datasets/{path_dir}/test.csv')
+    data_train = pd.read_csv(f'datasets/{path_dir}/train.csv')
     data = data_train.append(data_test)
     data = data[['RI', 'Na', 'target']]
 

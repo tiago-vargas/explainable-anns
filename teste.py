@@ -94,12 +94,12 @@ def main():
             method = config['method']
             relaxe_constraints = config['relaxe_constraints']
 
-            data_test = pd.read_csv(f'datasets\\{dir_path}\\test.csv')
-            data_train = pd.read_csv(f'datasets\\{dir_path}\\train.csv')
+            data_test = pd.read_csv(f'datasets/{dir_path}/test.csv')
+            data_train = pd.read_csv(f'datasets/{dir_path}/train.csv')
 
             data = data_train.append(data_test)
 
-            model_path = f'datasets\\{dir_path}\\model_2layers_{dir_path}.h5'
+            model_path = f'datasets/{dir_path}/model_2layers_{dir_path}.h5'
             model = tf.keras.models.load_model(model_path)
 
             codify_network_time = []
