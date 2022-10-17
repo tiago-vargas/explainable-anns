@@ -63,17 +63,18 @@ def get_miminal_explanation(mdl, network_input, network_output, n_classes, metho
 
 def main():
     datasets = [
-        # {'dir_path': 'australian', 'n_classes': 2},
-        # {'dir_path': 'auto', 'n_classes': 5},
-        # {'dir_path': 'backache', 'n_classes': 2},
-        # {'dir_path': 'breast-cancer', 'n_classes': 2},
-        # {'dir_path': 'cleve', 'n_classes': 2},
-        # {'dir_path': 'cleveland', 'n_classes': 5},
-        {'dir_path': 'glass', 'n_classes': 5},
-        # {'dir_path': 'glass2', 'n_classes': 2},
-        # {'dir_path': 'heart-statlog', 'n_classes': 2}, {'dir_path': 'hepatitis', 'n_classes': 2},
-        # {'dir_path': 'spect', 'n_classes': 2},
-        # {'dir_path': 'voting', 'n_classes': 2}
+        {'name': 'australian', 'n_classes': 2},
+        {'name': 'auto', 'n_classes': 5},
+        {'name': 'backache', 'n_classes': 2},
+        {'name': 'breast-cancer', 'n_classes': 2},
+        {'name': 'cleve', 'n_classes': 2},
+        {'name': 'cleveland', 'n_classes': 5},
+        {'name': 'glass', 'n_classes': 5},
+        {'name': 'glass2', 'n_classes': 2},
+        {'name': 'heart-statlog', 'n_classes': 2},
+        {'name': 'hepatitis', 'n_classes': 2},
+        {'name': 'spect', 'n_classes': 2},
+        {'name': 'voting', 'n_classes': 2}
     ]
 
     configurations = [
@@ -95,7 +96,7 @@ def main():
     }
 
     for dataset in datasets:
-        dir_path = dataset['dir_path']
+        dataset_name = dataset['name']
         n_classes = dataset['n_classes']
 
         for config in configurations:
@@ -104,12 +105,12 @@ def main():
             method = config['method']
             relaxe_constraints = config['relaxe_constraints']
 
-            data_test = pd.read_csv(f'datasets/{dir_path}/test.csv')
-            data_train = pd.read_csv(f'datasets/{dir_path}/train.csv')
+            data_test = pd.read_csv(f'datasets/{dataset_name}/test.csv')
+            data_train = pd.read_csv(f'datasets/{dataset_name}/train.csv')
 
             data = data_train.append(data_test)
 
-            model_path = f'datasets/{dir_path}/model_2layers_{dir_path}.h5'
+            model_path = f'datasets/{dataset_name}/model_2layers_{dataset_name}.h5'
             model = tf.keras.models.load_model(model_path)
 
             network_codifying_times = []
@@ -169,7 +170,7 @@ def main():
 
     index_label = []
     for dataset in datasets:
-        index_label.extend([f"{dataset['dir_path']}_m", f"{dataset['dir_path']}_a", f"{dataset['dir_path']}_M"])
+        index_label.extend([f"{dataset['name']}_m", f"{dataset['name']}_a", f"{dataset['name']}_M"])
 
     df = pd.DataFrame(data=df, index=index_label)
     df.to_csv('results2.csv')
