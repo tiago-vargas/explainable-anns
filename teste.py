@@ -34,31 +34,31 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 
-def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None):
+def get_minimal_explanation(linear_model: Model, network_input, network_output, n_classes, method, output_bounds=None):
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
-    input_variables = [mdl.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
-    output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
-    input_constraints = mdl.add_constraints([input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
-    binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
+    input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
+    output_variables = [linear_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    input_constraints = linear_model.add_constraints([input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
+    binary_variables = linear_model.binary_var_list(n_classes - 1, name='b')
 
-    mdl.add_constraint(mdl.sum(binary_variables) >= 1)
+    linear_model.add_constraint(linear_model.sum(binary_variables) >= 1)
 
     if method == 'tjeng':
-        mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
-                                              output_bounds)
+        linear_model = insert_output_constraints_tjeng(linear_model, output_variables, network_output, binary_variables, output_bounds)
     else:
-        mdl = insert_output_constraints_fischetti(mdl, output_variables, network_output,
-                                                  binary_variables)
+        linear_model = insert_output_constraints_fischetti(linear_model, output_variables, network_output, binary_variables)
 
+    # Get relevant features (i.e. features that are important to the classificiation)
     for i in range(len(network_input[0])):
-        mdl.remove_constraint(input_constraints[i])
+        linear_model.remove_constraint(input_constraints[i])
 
-        mdl.solve(log_output=False)
-        if mdl.solution is not None:
-            mdl.add_constraint(input_constraints[i])
+        linear_model.solve(log_output=False)
+        if linear_model.solution is not None:
+            linear_model.add_constraint(input_constraints[i])
 
-    return mdl.find_matching_linear_constraints('input')
+
+    return linear_model.find_matching_linear_constraints('input')
 
 
 def main():
@@ -135,7 +135,7 @@ def main():
                 mdl_aux = mdl.clone()
 
                 start = time()
-                explanation = get_miminal_explanation(mdl_aux, network_input, network_output,
+                explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
                 minimal_explanation_times.append(time() - start)
 
