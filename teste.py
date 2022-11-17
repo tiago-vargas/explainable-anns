@@ -5,6 +5,9 @@ from time import time
 from statistics import mean, stdev
 import pandas as pd
 
+# For type annotations
+from docplex.mp.model import Model
+
 
 def insert_output_constraints_fischetti(mdl, output_variables, network_output, binary_variables):
     variable_output = output_variables[network_output]
@@ -34,7 +37,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 
-def get_minimal_explanation(linear_model, network_input, network_output, n_classes, method, output_bounds=None):
+def get_minimal_explanation(linear_model: Model, network_input, network_output, n_classes, method, output_bounds=None):
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
@@ -147,6 +150,7 @@ def main():
                 explanation_lengths.append(len(explanation))
 
                 for restriction in explanation:
+                    print(restriction._name)
                     print(restriction)
 
             df[method][relaxe_constraints]['size'].extend([min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}', max(explanation_lengths)])
