@@ -145,12 +145,13 @@ def main():
                 start = time()
                 explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
+                print(mdl_aux.lp_string)
+
                 minimal_explanation_times.append(time() - start)
 
                 explanation_lengths.append(len(explanation))
 
                 for restriction in explanation:
-                    print(restriction._name)
                     print(restriction)
 
             df[method][relaxe_constraints]['size'].extend([min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}', max(explanation_lengths)])
