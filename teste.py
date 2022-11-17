@@ -34,7 +34,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 
-def get_minimal_explanation(linear_model: Model, network_input, network_output, n_classes, method, output_bounds=None):
+def get_minimal_explanation(linear_model, network_input, network_output, n_classes, method, output_bounds=None):
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
@@ -63,18 +63,18 @@ def get_minimal_explanation(linear_model: Model, network_input, network_output, 
 
 def main():
     datasets = [
-        {'name': 'australian', 'n_classes': 2},
-        {'name': 'auto', 'n_classes': 5},
-        {'name': 'backache', 'n_classes': 2},
-        {'name': 'breast-cancer', 'n_classes': 2},
-        {'name': 'cleve', 'n_classes': 2},
-        {'name': 'cleveland', 'n_classes': 5},
+        # {'name': 'australian', 'n_classes': 2},
+        # {'name': 'auto', 'n_classes': 5},
+        # {'name': 'backache', 'n_classes': 2},
+        # {'name': 'breast-cancer', 'n_classes': 2},
+        # {'name': 'cleve', 'n_classes': 2},
+        # {'name': 'cleveland', 'n_classes': 5},
         {'name': 'glass', 'n_classes': 5},
-        {'name': 'glass2', 'n_classes': 2},
-        {'name': 'heart-statlog', 'n_classes': 2},
-        {'name': 'hepatitis', 'n_classes': 2},
-        {'name': 'spect', 'n_classes': 2},
-        {'name': 'voting', 'n_classes': 2}
+        # {'name': 'glass2', 'n_classes': 2},
+        # {'name': 'heart-statlog', 'n_classes': 2},
+        # {'name': 'hepatitis', 'n_classes': 2},
+        # {'name': 'spect', 'n_classes': 2},
+        # {'name': 'voting', 'n_classes': 2}
     ]
 
     configurations = [
@@ -114,7 +114,7 @@ def main():
             model = tf.keras.models.load_model(model_path)
 
             network_codifying_times = []
-            for _ in range(10):
+            for _ in range(1):
                 start = time()
                 mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
                 network_codifying_times.append(time() - start)
@@ -123,7 +123,12 @@ def main():
             minimal_explanation_times = []
             explanation_lengths = []
             data = data.to_numpy()
-            for i in range(data.shape[0]):
+
+            for _ in range(1):
+                i = 127
+                # shape[0] number of rows
+                # shape[1] number of columns
+
                 #if i % 50 == 0:
                 print(i)
                 network_input = data[i, :-1]
@@ -142,7 +147,6 @@ def main():
                 explanation_lengths.append(len(explanation))
 
                 for restriction in explanation:
-                    print(restriction._name)
                     print(restriction)
 
             df[method][relaxe_constraints]['size'].extend([min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}', max(explanation_lengths)])
