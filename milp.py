@@ -233,8 +233,8 @@ if __name__ == '__main__':
     print(bounds)
 
 # X ---- E
-# x1 == 1 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL
-# x1 >= 0 /\ x1 <= 100 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL -> x1 n é relevante,  SATISFÁTIVEL -> x1 é relevante
+# x1 == 1 /\ x2 == 3 /\ F /\ ~E    UNSATISFIABLE
+# x1 >= 0 /\ x1 <= 100 /\ x2 == 3 /\ F /\ ~E    UNSATISFIABLE -> x1 isn't relevant,  SATISFIABLE -> x1 is relevant
 '''
 print("\n\nSolving model....\n")
 
