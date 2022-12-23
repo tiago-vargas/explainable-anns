@@ -206,19 +206,14 @@ def get_domain_and_bounds_inputs(dataframe: pd.DataFrame) -> tuple[list[str], li
     for column_label in dataframe.columns[:-1]:
         if len(dataframe[column_label].unique()) == 2:
             domain.append('B')
-            bound_inf: float = dataframe[column_label].min()
-            bound_sup: float = dataframe[column_label].max()
-            bounds.append([bound_inf, bound_sup])
         elif np.any(dataframe[column_label].unique().astype(np.int64) != dataframe[column_label].unique().astype(np.float64)):
             domain.append('C')
-            bound_inf: float = dataframe[column_label].min()
-            bound_sup: float = dataframe[column_label].max()
-            bounds.append([bound_inf, bound_sup])
         else:
             domain.append('I')
-            bound_inf: float = dataframe[column_label].min()
-            bound_sup: float = dataframe[column_label].max()
-            bounds.append([bound_inf, bound_sup])
+
+        bound_inf: float = dataframe[column_label].min()
+        bound_sup: float = dataframe[column_label].max()
+        bounds.append([bound_inf, bound_sup])
 
     return domain, bounds
 
