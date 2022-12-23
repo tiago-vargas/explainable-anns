@@ -5,7 +5,10 @@ import tensorflow as tf
 import pandas as pd
 
 
-def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables):
+def codify_network_fischetti(mdl: mp.Model, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables):
+    """
+    :param layers: A Keras model instance's layers
+    """
     output_bounds = []
 
     for i in range(len(layers)):
@@ -20,7 +23,6 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
             y = output_variables
 
         for j in range(A.shape[0]):
-
             if i != len(layers) - 1:
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], ctname=f'c_{i}_{j}')
                 mdl.add_indicator(a[j], y[j] <= 0, 1)
@@ -38,8 +40,6 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
 
                 y[j].set_ub(ub_y)
                 s[j].set_ub(ub_s)
-
-
             else:
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
                 mdl.maximize(y[j])
@@ -59,7 +59,10 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
     return mdl, output_bounds
 
 
-def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, decision_variables, output_variables):
+def codify_network_tjeng(mdl: mp.Model, layers, input_variables, intermediate_variables, decision_variables, output_variables):
+    """
+    :param layers: A Keras model instance's layers
+    """
     output_bounds = []
 
     for i in range(len(layers)):
@@ -73,7 +76,6 @@ def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, d
             y = output_variables
 
         for j in range(A.shape[0]):
-
             mdl.maximize(A[j, :] @ x + b[j])
             mdl.solve()
             ub = mdl.solution.get_objective_value()
@@ -102,7 +104,6 @@ def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, d
                 #ub_y = mdl.solution.get_objective_value()
                 #mdl.remove_objective()
                 #y[j].set_ub(ub_y)
-
             else:
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j])
                 #y[j].set_ub(ub)
@@ -112,7 +113,10 @@ def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, d
     return mdl, output_bounds
 
 
-def codify_network(model, dataframe, method, relaxe_constraints):
+def codify_network(model, dataframe: pd.DataFrame, method: str, relaxe_constraints: bool):
+    """
+    :param model: A Keras model instance
+    """
     layers = model.layers
     num_features = layers[0].get_weights()[0].shape[0]
     mdl = mp.Model()
@@ -156,7 +160,7 @@ def codify_network(model, dataframe, method, relaxe_constraints):
                                                   intermediate_variables, decision_variables, output_variables)
     else:
         mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables,
-                                                  intermediate_variables, decision_variables, output_variables)
+                                                      intermediate_variables, decision_variables, output_variables)
 
     if relaxe_constraints:
         # Tighten domain of variables 'a'
@@ -176,24 +180,24 @@ def codify_network(model, dataframe, method, relaxe_constraints):
     return mdl, output_bounds
 
 
-def get_domain_and_bounds_inputs(dataframe):
-    domain = []
-    bounds = []
-    for column in dataframe.columns[:-1]:
-        if len(dataframe[column].unique()) == 2:
+def get_domain_and_bounds_inputs(dataframe: pd.DataFrame) -> tuple[list[str], list[list[float]]]:
+    domain: list[str] = []
+    bounds: list[list[float]] = []
+    for column_label in dataframe.columns[:-1]:
+        if len(dataframe[column_label].unique()) == 2:
             domain.append('B')
-            bound_inf = dataframe[column].min()
-            bound_sup = dataframe[column].max()
+            bound_inf: float = dataframe[column_label].min()
+            bound_sup: float = dataframe[column_label].max()
             bounds.append([bound_inf, bound_sup])
-        elif np.any(dataframe[column].unique().astype(np.int64) != dataframe[column].unique().astype(np.float64)):
+        elif np.any(dataframe[column_label].unique().astype(np.int64) != dataframe[column_label].unique().astype(np.float64)):
             domain.append('C')
-            bound_inf = dataframe[column].min()
-            bound_sup = dataframe[column].max()
+            bound_inf: float = dataframe[column_label].min()
+            bound_sup: float = dataframe[column_label].max()
             bounds.append([bound_inf, bound_sup])
         else:
             domain.append('I')
-            bound_inf = dataframe[column].min()
-            bound_sup = dataframe[column].max()
+            bound_inf: float = dataframe[column_label].min()
+            bound_sup: float = dataframe[column_label].max()
             bounds.append([bound_inf, bound_sup])
 
     return domain, bounds
