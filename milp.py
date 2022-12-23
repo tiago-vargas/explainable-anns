@@ -149,7 +149,7 @@ def codify_network(
     else:
         input_variables = []
         for i in range(len(domain_input)):
-            lb, ub = bounds_input[i]
+            [lb, ub] = bounds_input[i]
             if domain_input[i] == 'C':
                 input_variables.append(mdl.continuous_var(lb=lb, ub=ub, name=f'x_{i}'))
             elif domain_input[i] == 'I':
