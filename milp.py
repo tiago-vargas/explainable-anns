@@ -141,8 +141,8 @@ def codify_network(
     num_features = layers[0].get_weights()[0].shape[0]
     mdl = mp.Model()
 
-    domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
-    bounds_input = np.array(bounds_input)
+    domain_input, bounds_input_aux = get_domain_and_bounds_inputs(dataframe)
+    bounds_input = np.array(bounds_input_aux)
 
     if relaxe_constraints:
         input_variables = mdl.continuous_var_list(num_features, lb=bounds_input[:, 0], ub=bounds_input[:, 1], name='x')
