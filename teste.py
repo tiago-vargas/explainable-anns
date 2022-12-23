@@ -70,7 +70,7 @@ def get_minimal_explanation(
     else:
         linear_model = insert_output_constraints_fischetti(linear_model, output_variables, network_output, binary_variables)
 
-    # Get relevant features (i.e. features that are important to the classificiation)
+    # Get relevant features (i.e. features that are important to the classification)
     for i in range(len(network_input[0])):
         linear_model.remove_constraint(input_constraints[i])
 
@@ -162,7 +162,7 @@ def main():
 
                 start = time()
                 explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
-                                                      n_classes=n_classes, method=method, output_bounds=output_bounds)
+                                                      n_classes, method, output_bounds)
                 print(mdl_aux.lp_string)
 
                 minimal_explanation_times.append(time() - start)
@@ -202,7 +202,8 @@ def main():
     df = pd.DataFrame(data=df, index=index_label)
     df.to_csv('results2.csv')
 
-def print_statistics(list, title: str):
+
+def print_statistics(list: list[float], title: str):
     print(title + ':')
     print(f'\tm: {min(list)}')
     print(f'\ta: {mean(list)} +- {stdev(list)}')
