@@ -145,15 +145,17 @@ def codify_network(
     bounds_input = np.array(bounds_input_aux)
 
     if relaxe_constraints:
-        input_variables = mdl.continuous_var_list(num_features, lb=bounds_input[:, 0], ub=bounds_input[:, 1], name='x')
+        lb = bounds_input[:, 0]
+        ub = bounds_input[:, 1]
+        input_variables = mdl.continuous_var_list(num_features, lb, ub, name='x')
     else:
         input_variables = []
         for i in range(len(domain_input)):
             [lb, ub] = bounds_input[i]
             if domain_input[i] == 'C':
-                input_variables.append(mdl.continuous_var(lb=lb, ub=ub, name=f'x_{i}'))
+                input_variables.append(mdl.continuous_var(lb, ub, name=f'x_{i}'))
             elif domain_input[i] == 'I':
-                input_variables.append(mdl.integer_var(lb=lb, ub=ub, name=f'x_{i}'))
+                input_variables.append(mdl.integer_var(lb, ub, name=f'x_{i}'))
             elif domain_input[i] == 'B':
                 input_variables.append(mdl.binary_var(name=f'x_{i}'))
 
