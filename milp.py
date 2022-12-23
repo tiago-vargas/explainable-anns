@@ -5,7 +5,15 @@ import tensorflow as tf
 import pandas as pd
 
 
-def codify_network_fischetti(mdl: mp.Model, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables):
+def codify_network_fischetti(
+        mdl: mp.Model,
+        layers,
+        input_variables,
+        auxiliary_variables,
+        intermediate_variables,
+        decision_variables,
+        output_variables
+):
     """
     :param layers: A Keras model instance's layers
     """
@@ -59,9 +67,16 @@ def codify_network_fischetti(mdl: mp.Model, layers, input_variables, auxiliary_v
     return mdl, output_bounds
 
 
-def codify_network_tjeng(mdl: mp.Model, layers, input_variables, intermediate_variables, decision_variables, output_variables):
+def codify_network_tjeng(
+        mdl: mp.Model,
+        layers,
+        input_variables,
+        intermediate_variables,
+        decision_variables,
+        output_variables
+):
     """
-    :param layers: A Keras model instance's layers
+    :param layers: A Keras model instance's layers.
     """
     output_bounds = []
 
@@ -113,9 +128,14 @@ def codify_network_tjeng(mdl: mp.Model, layers, input_variables, intermediate_va
     return mdl, output_bounds
 
 
-def codify_network(model, dataframe: pd.DataFrame, method: str, relaxe_constraints: bool):
+def codify_network(
+        model,
+        dataframe: pd.DataFrame,
+        method: str,
+        relaxe_constraints: bool
+):
     """
-    :param model: A Keras model instance
+    :param model: A Keras model instance.
     """
     layers = model.layers
     num_features = layers[0].get_weights()[0].shape[0]

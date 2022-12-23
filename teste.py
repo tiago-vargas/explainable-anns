@@ -9,7 +9,12 @@ import pandas as pd
 from docplex.mp.model import Model
 
 
-def insert_output_constraints_fischetti(mdl, output_variables, network_output, binary_variables):
+def insert_output_constraints_fischetti(
+        mdl,
+        output_variables,
+        network_output,
+        binary_variables
+):
     variable_output = output_variables[network_output]
     aux_var = 0
 
@@ -22,7 +27,13 @@ def insert_output_constraints_fischetti(mdl, output_variables, network_output, b
     return mdl
 
 
-def insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables, output_bounds):
+def insert_output_constraints_tjeng(
+        mdl,
+        output_variables,
+        network_output,
+        binary_variables,
+        output_bounds
+):
     variable_output = output_variables[network_output]
     upper_bounds_diffs = output_bounds[network_output][1] - np.array(output_bounds)[:, 0]  # Output i: oi - oj <= u1 = ui - lj
     aux_var = 0
@@ -37,7 +48,14 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 
-def get_minimal_explanation(linear_model: Model, network_input, network_output, n_classes, method, output_bounds=None):
+def get_minimal_explanation(
+        linear_model: Model,
+        network_input,
+        network_output,
+        n_classes,
+        method,
+        output_bounds=None
+):
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
@@ -111,7 +129,7 @@ def main():
             data_test = pd.read_csv(f'datasets/{dataset_name}/test.csv')
             data_train = pd.read_csv(f'datasets/{dataset_name}/train.csv')
 
-            data = data_train.append(data_test)
+            dataframe = data_train.append(data_test)
 
             model_path = f'datasets/{dataset_name}/model_2layers_{dataset_name}.h5'
             model = tf.keras.models.load_model(model_path)
@@ -119,18 +137,18 @@ def main():
             network_codifying_times = []
             for _ in range(1):
                 start = time()
-                mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
+                mdl, output_bounds = codify_network(model, dataframe, method, relaxe_constraints)
                 network_codifying_times.append(time() - start)
                 print(network_codifying_times[-1])
 
             minimal_explanation_times = []
             explanation_lengths = []
-            data = data.to_numpy()
+            data = dataframe.to_numpy()
 
             for _ in range(1):
                 i = 127
-                # shape[0] number of rows
-                # shape[1] number of columns
+                # shape[0]: number of rows
+                # shape[1]: number of columns
 
                 #if i % 50 == 0:
                 print(i)
