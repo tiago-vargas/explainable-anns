@@ -56,7 +56,7 @@ def get_minimal_explanation(
         method,
         output_bounds=None
 ):
-    assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
+    assert not (method == 'tjeng' and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
     output_variables = [linear_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
@@ -70,14 +70,14 @@ def get_minimal_explanation(
     else:
         linear_model = insert_output_constraints_fischetti(linear_model, output_variables, network_output, binary_variables)
 
-    # Get relevant features (i.e. features that are important to the classification)
+    # Get relevant features (i.e. features that are important for the classification)
     for i in range(len(network_input[0])):
         linear_model.remove_constraint(input_constraints[i])
 
         linear_model.solve(log_output=False)
+
         if linear_model.solution is not None:
             linear_model.add_constraint(input_constraints[i])
-
 
     return linear_model.find_matching_linear_constraints('input')
 
@@ -139,7 +139,7 @@ def main():
                 start = time()
                 mdl, output_bounds = codify_network(model, dataframe, method, relaxe_constraints)
                 network_codifying_times.append(time() - start)
-                print(network_codifying_times[-1])
+                print('Network codifying time:', network_codifying_times[-1])
 
             minimal_explanation_times = []
             explanation_lengths = []
