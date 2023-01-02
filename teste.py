@@ -36,8 +36,8 @@ def insert_output_constraints_tjeng(
 ):
     variable_output = output_variables[network_output]
     upper_bounds_diffs = output_bounds[network_output][1] - np.array(output_bounds)[:, 0]  # Output i: oi - oj <= u1 = ui - lj
-    aux_var = 0
 
+    aux_var = 0
     for i, output in enumerate(output_variables):
         if i != network_output:
             ub = upper_bounds_diffs[i]
@@ -60,7 +60,9 @@ def get_minimal_explanation(
 
     input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
     output_variables = [linear_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
-    input_constraints = linear_model.add_constraints([input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])], names='input')
+    input_constraints = linear_model.add_constraints(
+        [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])],
+        names='input')
     binary_variables = linear_model.binary_var_list(n_classes - 1, name='b')
 
     linear_model.add_constraint(linear_model.sum(binary_variables) >= 1)
@@ -70,7 +72,7 @@ def get_minimal_explanation(
     else:
         linear_model = insert_output_constraints_fischetti(linear_model, output_variables, network_output, binary_variables)
 
-    # Get relevant features (i.e. features that are important for the classification)
+    # Filter relevant features (i.e. features that are important for the classification)
     for i in range(len(network_input[0])):
         linear_model.remove_constraint(input_constraints[i])
 
@@ -152,25 +154,31 @@ def main():
 
                 #if i % 50 == 0:
                 print(i)
-                network_input = data[i, :-1]
+                network_input = data[i, :-1]   # `network_input` doesn't change
 
                 network_input = tf.reshape(tf.constant(network_input), (1, -1))
-                network_output = model.predict(tf.constant(network_input))[0]
+                network_output = model.predict(tf.constant(network_input))[0]    # Therefore, `network_output` also doesn't change
                 network_output = tf.argmax(network_output)
+
+                """
+                `network_input` is constant
+                Therefore, `network_output` is also constant
+                """
 
                 mdl_aux = mdl.clone()
 
                 start = time()
-                explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
-                                                      n_classes, method, output_bounds)
+                minimal_explanation = get_minimal_explanation(mdl_aux, network_input, network_output, n_classes, method, output_bounds)
+
                 print(mdl_aux.lp_string)
 
                 minimal_explanation_times.append(time() - start)
 
-                explanation_lengths.append(len(explanation))
+                explanation_lengths.append(len(minimal_explanation))
 
-                for restriction in explanation:
-                    print(restriction)
+                print('Minimal explanation:')
+                for constraint in minimal_explanation:
+                    print(constraint)
 
             df[method][relaxe_constraints]['size'].extend([min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}', max(explanation_lengths)])
             df[method][relaxe_constraints]['milp_time'].extend([min(minimal_explanation_times), f'{mean(minimal_explanation_times)} +- {stdev(minimal_explanation_times)}', max(minimal_explanation_times)])
