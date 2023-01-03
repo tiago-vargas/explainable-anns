@@ -14,9 +14,6 @@ def codify_network_fischetti(
         decision_variables,
         output_variables
 ):
-    """
-    :param layers: A Keras model instance's layers
-    """
     output_bounds = []
 
     for i in range(len(layers)):
@@ -24,8 +21,6 @@ def codify_network_fischetti(
         b = layers[i].bias.numpy()
         x = input_variables if i == 0 else intermediate_variables[i - 1]
         if i != len(layers) - 1:
-            s = auxiliary_variables[i]
-            a = decision_variables[i]
             y = intermediate_variables[i]
         else:
             y = output_variables
@@ -33,6 +28,8 @@ def codify_network_fischetti(
         for j in range(w.shape[0]):
             constraint_name = f'c_{i}_{j}'
             if i != len(layers) - 1:
+                s = auxiliary_variables[i]
+                a = decision_variables[i]
                 mp_model.add_constraint(w[j, :] @ x + b[j] == y[j] - s[j], constraint_name)
                 mp_model.add_indicator(a[j], y[j] <= 0, 1)
                 mp_model.add_indicator(a[j], s[j] <= 0, 0)
@@ -86,7 +83,6 @@ def codify_network_tjeng(
         b = layers[i].bias.numpy()
         x = input_variables if i == 0 else intermediate_variables[i-1]
         if i != len(layers) - 1:
-            a = decision_variables[i]
             y = intermediate_variables[i]
         else:
             y = output_variables
@@ -112,6 +108,7 @@ def codify_network_tjeng(
                 continue
 
             if i != len(layers) - 1:
+                a = decision_variables[i]
                 mp_model.add_constraint(y[j] <= w[j, :] @ x + b[j] - lb * (1 - a[j]))
                 mp_model.add_constraint(y[j] >= w[j, :] @ x + b[j])
                 mp_model.add_constraint(y[j] <= ub * a[j])
