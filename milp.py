@@ -20,9 +20,9 @@ def codify_network_fischetti(
     output_bounds = []
 
     for i in range(len(layers)):
-        A = layers[i].get_weights()[0].T
+        w = layers[i].get_weights()[0].T
         b = layers[i].bias.numpy()
-        x = input_variables if i == 0 else intermediate_variables[i-1]
+        x = input_variables if i == 0 else intermediate_variables[i - 1]
         if i != len(layers) - 1:
             s = auxiliary_variables[i]
             a = decision_variables[i]
@@ -30,10 +30,10 @@ def codify_network_fischetti(
         else:
             y = output_variables
 
-        for j in range(A.shape[0]):
+        for j in range(w.shape[0]):
             constraint_name = f'c_{i}_{j}'
             if i != len(layers) - 1:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], constraint_name)
+                mp_model.add_constraint(w[j, :] @ x + b[j] == y[j] - s[j], constraint_name)
                 mp_model.add_indicator(a[j], y[j] <= 0, 1)
                 mp_model.add_indicator(a[j], s[j] <= 0, 0)
 
@@ -50,7 +50,7 @@ def codify_network_fischetti(
                 y[j].set_ub(ub_y)
                 s[j].set_ub(ub_s)
             else:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j], constraint_name)
+                mp_model.add_constraint(w[j, :] @ x + b[j] == y[j], constraint_name)
                 mp_model.maximize(y[j])
                 mp_model.solve()
                 ub = mp_model.solution.get_objective_value()
@@ -82,7 +82,7 @@ def codify_network_tjeng(
     output_bounds = []
 
     for i in range(len(layers)):
-        A = layers[i].get_weights()[0].T
+        w = layers[i].get_weights()[0].T
         b = layers[i].bias.numpy()
         x = input_variables if i == 0 else intermediate_variables[i-1]
         if i != len(layers) - 1:
@@ -91,8 +91,8 @@ def codify_network_tjeng(
         else:
             y = output_variables
 
-        for j in range(A.shape[0]):
-            mp_model.maximize(A[j, :] @ x + b[j])
+        for j in range(w.shape[0]):
+            mp_model.maximize(w[j, :] @ x + b[j])
             mp_model.solve()
             ub = mp_model.solution.get_objective_value()
             mp_model.remove_objective()
@@ -102,18 +102,18 @@ def codify_network_tjeng(
                 mp_model.add_constraint(y[j] == 0, constraint_name)
                 continue
 
-            mp_model.minimize(A[j, :] @ x + b[j])
+            mp_model.minimize(w[j, :] @ x + b[j])
             mp_model.solve()
             lb = mp_model.solution.get_objective_value()
             mp_model.remove_objective()
 
             if lb >= 0 and i != len(layers) - 1:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j], constraint_name)
+                mp_model.add_constraint(w[j, :] @ x + b[j] == y[j], constraint_name)
                 continue
 
             if i != len(layers) - 1:
-                mp_model.add_constraint(y[j] <= A[j, :] @ x + b[j] - lb * (1 - a[j]))
-                mp_model.add_constraint(y[j] >= A[j, :] @ x + b[j])
+                mp_model.add_constraint(y[j] <= w[j, :] @ x + b[j] - lb * (1 - a[j]))
+                mp_model.add_constraint(y[j] >= w[j, :] @ x + b[j])
                 mp_model.add_constraint(y[j] <= ub * a[j])
 
                 #mdl.maximize(y[j])
@@ -122,9 +122,7 @@ def codify_network_tjeng(
                 #mdl.remove_objective()
                 #y[j].set_ub(ub_y)
             else:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j])
-                #y[j].set_ub(ub)
-                #y[j].set_lb(lb)
+                mp_model.add_constraint(w[j, :] @ x + b[j] == y[j])
                 output_bounds.append([lb, ub])
 
     return mp_model, output_bounds
@@ -169,7 +167,7 @@ def codify_network(
     auxiliary_variables = []
     decision_variables = []
 
-    for i in range(len(layers)-1):
+    for i in range(len(layers) - 1):
         weights: np.ndarray = layers[i].get_weights()[0]
         number_of_variables: int = weights.shape[1]
         key_format = f"_{i}_%s"
@@ -194,13 +192,13 @@ def codify_network(
     output_variables = mp_model.continuous_var_list(layers[-1].get_weights()[0].shape[1], name='o', lb=-infinity)
 
     if method == 'tjeng':
-        mp_model, output_bounds = codify_network_tjeng(mp_model, layers, input_variables,
-                                                       intermediate_variables, decision_variables,
-                                                       output_variables)
+        (mp_model, output_bounds) = codify_network_tjeng(mp_model, layers, input_variables,
+                                                         intermediate_variables, decision_variables,
+                                                         output_variables)
     else:
-        mp_model, output_bounds = codify_network_fischetti(mp_model, layers, input_variables, auxiliary_variables,
-                                                           intermediate_variables, decision_variables,
-                                                           output_variables)
+        (mp_model, output_bounds) = codify_network_fischetti(mp_model, layers, input_variables, auxiliary_variables,
+                                                             intermediate_variables, decision_variables,
+                                                             output_variables)
 
     if relaxe_constraints:
         # Tighten domain of variables 'a'
