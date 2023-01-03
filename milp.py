@@ -129,7 +129,7 @@ def codify_network(
         keras_model,
         dataframe: pd.DataFrame,
         method: str,
-        relaxe_constraints: bool
+        relax_constraints: bool
 ):
     """
     :param keras_model: A Keras model instance.
@@ -141,7 +141,7 @@ def codify_network(
     (domain_input, bounds_input_aux) = get_domain_and_bounds_inputs(dataframe)
     bounds_input = np.array(bounds_input_aux)
 
-    if relaxe_constraints:
+    if relax_constraints:
         lb = bounds_input[:, 0]
         ub = bounds_input[:, 1]
         input_variables = mp_model.continuous_var_list(num_features, lb, ub, name='x')
@@ -177,7 +177,7 @@ def codify_network(
                                                                          key_format=key_format)
             auxiliary_variables.append(continuous_decision_variables)
 
-        if relaxe_constraints and method == 'tjeng':
+        if relax_constraints and method == 'tjeng':
             continuous_decision_variables = mp_model.continuous_var_list(number_of_variables, name='a', lb=0, ub=1,
                                                                          key_format=key_format)
             decision_variables.append(continuous_decision_variables)
@@ -197,7 +197,7 @@ def codify_network(
                                                              intermediate_variables, decision_variables,
                                                              output_variables)
 
-    if relaxe_constraints:
+    if relax_constraints:
         # Tighten domain of variables 'a'
         for i in decision_variables:
             for a in i:
