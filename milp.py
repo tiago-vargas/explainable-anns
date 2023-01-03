@@ -31,8 +31,9 @@ def codify_network_fischetti(
             y = output_variables
 
         for j in range(A.shape[0]):
+            constraint_name = f'c_{i}_{j}'
             if i != len(layers) - 1:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], ctname=f'c_{i}_{j}')
+                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], constraint_name)
                 mp_model.add_indicator(a[j], y[j] <= 0, 1)
                 mp_model.add_indicator(a[j], s[j] <= 0, 0)
 
@@ -49,7 +50,7 @@ def codify_network_fischetti(
                 y[j].set_ub(ub_y)
                 s[j].set_ub(ub_s)
             else:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
+                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j], constraint_name)
                 mp_model.maximize(y[j])
                 mp_model.solve()
                 ub = mp_model.solution.get_objective_value()
@@ -96,8 +97,9 @@ def codify_network_tjeng(
             ub = mp_model.solution.get_objective_value()
             mp_model.remove_objective()
 
+            constraint_name = f'c_{i}_{j}'
             if ub <= 0 and i != len(layers) - 1:
-                mp_model.add_constraint(y[j] == 0, ctname=f'c_{i}_{j}')
+                mp_model.add_constraint(y[j] == 0, constraint_name)
                 continue
 
             mp_model.minimize(A[j, :] @ x + b[j])
@@ -106,7 +108,7 @@ def codify_network_tjeng(
             mp_model.remove_objective()
 
             if lb >= 0 and i != len(layers) - 1:
-                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
+                mp_model.add_constraint(A[j, :] @ x + b[j] == y[j], constraint_name)
                 continue
 
             if i != len(layers) - 1:
@@ -135,7 +137,7 @@ def codify_network(
         relaxe_constraints: bool
 ):
     """
-    :param model: A Keras model instance.
+    :param keras_model: A Keras model instance.
     """
     layers = keras_model.layers
     num_features = layers[0].get_weights()[0].shape[0]
@@ -152,28 +154,42 @@ def codify_network(
         input_variables = []
         for i in range(len(domain_input)):
             [lb, ub] = bounds_input[i]
+            name = f'x_{i}'
             if domain_input[i] == 'C':
-                input_variables.append(mp_model.continuous_var(lb, ub, name=f'x_{i}'))
+                decision_variable = mp_model.continuous_var(lb, ub, name)
+                input_variables.append(decision_variable)
             elif domain_input[i] == 'I':
-                input_variables.append(mp_model.integer_var(lb, ub, name=f'x_{i}'))
+                integer_variable = mp_model.integer_var(lb, ub, name)
+                input_variables.append(integer_variable)
             elif domain_input[i] == 'B':
-                input_variables.append(mp_model.binary_var(name=f'x_{i}'))
+                decision_variable = mp_model.binary_var(name)
+                input_variables.append(decision_variable)
 
     intermediate_variables = []
     auxiliary_variables = []
     decision_variables = []
 
     for i in range(len(layers)-1):
-        weights = layers[i].get_weights()[0]
-        intermediate_variables.append(mp_model.continuous_var_list(weights.shape[1], lb=0, name='y', key_format=f"_{i}_%s"))
+        weights: np.ndarray = layers[i].get_weights()[0]
+        number_of_variables: int = weights.shape[1]
+        key_format = f"_{i}_%s"
+        continuous_decision_variables = mp_model.continuous_var_list(number_of_variables, name='y', lb=0,
+                                                                     key_format=key_format)
+        intermediate_variables.append(continuous_decision_variables)
 
         if method == 'fischetti':
-            auxiliary_variables.append(mp_model.continuous_var_list(weights.shape[1], lb=0, name='s', key_format=f"_{i}_%s"))
+            continuous_decision_variables = mp_model.continuous_var_list(number_of_variables, name='s', lb=0,
+                                                                         key_format=key_format)
+            auxiliary_variables.append(continuous_decision_variables)
 
         if relaxe_constraints and method == 'tjeng':
-            decision_variables.append(mp_model.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+            continuous_decision_variables = mp_model.continuous_var_list(number_of_variables, name='a', lb=0, ub=1,
+                                                                         key_format=key_format)
+            decision_variables.append(continuous_decision_variables)
         else:
-            decision_variables.append(mp_model.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+            binary_decision_variables = mp_model.binary_var_list(number_of_variables, name='a', lb=0, ub=1,
+                                                                 key_format=key_format)
+            decision_variables.append(binary_decision_variables)
 
     output_variables = mp_model.continuous_var_list(layers[-1].get_weights()[0].shape[1], name='o', lb=-infinity)
 
@@ -208,9 +224,10 @@ def get_domain_and_bounds_inputs(dataframe: pd.DataFrame) -> tuple[list[str], li
     domain: list[str] = []
     bounds: list[list[float]] = []
     for column_label in dataframe.columns[:-1]:
-        if len(dataframe[column_label].unique()) == 2:
+        column = dataframe[column_label]
+        if len(column.unique()) == 2:
             domain.append('B')
-        elif np.any(dataframe[column_label].unique().astype(np.int64) != dataframe[column_label].unique().astype(np.float64)):
+        elif np.any(column.unique().astype(np.int64) != column.unique().astype(np.float64)):
             domain.append('C')
         else:
             domain.append('I')
