@@ -159,7 +159,7 @@ def codify_network(
     for i in range(len(layers) - 1):
         weights: np.ndarray = layers[i].get_weights()[0]
         number_of_variables: int = weights.shape[1]
-        key_format = f"_{i}_%s"
+        key_format = f'_{i}_%s'
         continuous_decision_variables = mp_model.continuous_var_list(number_of_variables, name='y', lb=0,
                                                                      key_format=key_format)
         intermediate_variables.append(continuous_decision_variables)
