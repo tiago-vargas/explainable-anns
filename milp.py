@@ -31,8 +31,8 @@ def codify_network_fischetti(
                 s = auxiliary_variables[i]
                 a = decision_variables[i]
                 mp_model.add_constraint(w[j, :] @ x + b[j] == y[j] - s[j], constraint_name)
-                mp_model.add_indicator(a[j], y[j] <= 0, 1)
-                mp_model.add_indicator(a[j], s[j] <= 0, 0)
+                mp_model.add_indicator(binary_var=a[j], linear_ct=y[j] <= 0, active_value=1)
+                mp_model.add_indicator(binary_var=a[j], linear_ct=s[j] <= 0, active_value=0)
 
                 mp_model.maximize(y[j])
                 mp_model.solve()
