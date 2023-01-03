@@ -4,10 +4,14 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 
+# For type annotations
+from keras.engine.sequential import Sequential
+from keras.layers.core.dense import Dense
+
 
 def codify_network_fischetti(
         mp_model: mp.Model,
-        layers,
+        layers: list[Dense],
         input_variables,
         auxiliary_variables,
         intermediate_variables,
@@ -67,15 +71,12 @@ def codify_network_fischetti(
 
 def codify_network_tjeng(
         mp_model: mp.Model,
-        layers,
+        layers: list[Dense],
         input_variables,
         intermediate_variables,
         decision_variables,
         output_variables
 ):
-    """
-    :param layers: A Keras model instance's layers.
-    """
     output_bounds = []
 
     for i in range(len(layers)):
@@ -126,14 +127,11 @@ def codify_network_tjeng(
 
 
 def codify_network(
-        keras_model,
+        keras_model: Sequential,
         dataframe: pd.DataFrame,
         method: str,
         relax_constraints: bool
 ):
-    """
-    :param keras_model: A Keras model instance.
-    """
     layers = keras_model.layers
     num_features = layers[0].get_weights()[0].shape[0]
     mp_model = mp.Model()
