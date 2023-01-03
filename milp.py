@@ -113,12 +113,6 @@ def codify_network_tjeng(
                 mp_model.add_constraint(y[j] <= w[j, :] @ x + b[j] - lb * (1 - a[j]))
                 mp_model.add_constraint(y[j] >= w[j, :] @ x + b[j])
                 mp_model.add_constraint(y[j] <= ub * a[j])
-
-                #mdl.maximize(y[j])
-                #mdl.solve()
-                #ub_y = mdl.solution.get_objective_value()
-                #mdl.remove_objective()
-                #y[j].set_ub(ub_y)
             else:
                 mp_model.add_constraint(w[j, :] @ x + b[j] == y[j])
                 output_bounds.append([lb, ub])
@@ -234,7 +228,6 @@ def get_domain_and_bounds_inputs(dataframe: pd.DataFrame) -> tuple[list[str], li
 
 def main():
     path_dir = 'glass'
-    #model = tf.keras.models.load_model(f'datasets/{path_dir}/model_{path_dir}.h5')
     model = tf.keras.models.load_model(f'datasets/{path_dir}/teste.h5')
     testing_data = pd.read_csv(f'datasets/{path_dir}/test.csv')
     training_data = pd.read_csv(f'datasets/{path_dir}/train.csv')
@@ -251,9 +244,3 @@ if __name__ == '__main__':
 # X ---- E
 # x1 == 1 /\ x2 == 3 /\ F /\ ~E    UNSATISFIABLE
 # x1 >= 0 /\ x1 <= 100 /\ x2 == 3 /\ F /\ ~E    UNSATISFIABLE -> x1 isn't relevant,  SATISFIABLE -> x1 is relevant
-'''
-print("\n\nSolving model....\n")
-
-msol = mdl.solve(log_output=True)
-print(mdl.get_solve_status())
-'''
