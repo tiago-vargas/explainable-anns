@@ -210,6 +210,7 @@ def codify_network(
 def get_domain_and_bounds_inputs(dataframe: pd.DataFrame) -> tuple[list[str], list[list[float]]]:
     domain: list[str] = []
     bounds: list[list[float]] = []
+
     for column_label in dataframe.columns[:-1]:
         column = dataframe[column_label]
         if len(column.unique()) == 2:
@@ -219,8 +220,8 @@ def get_domain_and_bounds_inputs(dataframe: pd.DataFrame) -> tuple[list[str], li
         else:
             domain.append('I')
 
-        bound_inf: float = dataframe[column_label].min()
-        bound_sup: float = dataframe[column_label].max()
+        bound_inf: float = column.min()
+        bound_sup: float = column.max()
         bounds.append([bound_inf, bound_sup])
 
     return domain, bounds
