@@ -10,25 +10,24 @@ from docplex.mp.model import Model
 
 
 def insert_output_constraints_fischetti(
-        mdl,
+        mp_model,
         output_variables,
         network_output,
         binary_variables
 ):
     variable_output = output_variables[network_output]
     aux_var = 0
-
     for i, output in enumerate(output_variables):
         if i != network_output:
             p = binary_variables[aux_var]
             aux_var += 1
-            mdl.add_indicator(p, variable_output <= output, 1)
+            mp_model.add_indicator(p, variable_output <= output, 1)
 
-    return mdl
+    return mp_model
 
 
 def insert_output_constraints_tjeng(
-        mdl,
+        mp_model,
         output_variables,
         network_output,
         binary_variables,
@@ -42,14 +41,14 @@ def insert_output_constraints_tjeng(
         if i != network_output:
             ub = upper_bounds_diffs[i]
             z = binary_variables[aux_var]
-            mdl.add_constraint(variable_output - output - ub*(1 - z) <= 0)
+            mp_model.add_constraint(variable_output - output - ub * (1 - z) <= 0)
             aux_var += 1
 
-    return mdl
+    return mp_model
 
 
 def get_minimal_explanation(
-        linear_model: Model,
+        mp_model: Model,
         network_input,
         network_output,
         n_classes,
@@ -58,34 +57,36 @@ def get_minimal_explanation(
 ):
     assert not (method == 'tjeng' and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
-    input_variables = [linear_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
-    output_variables = [linear_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
-    input_constraints = linear_model.add_constraints(
+    input_variables = [mp_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
+    output_variables = [mp_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    input_constraints = mp_model.add_constraints(
         [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])],
         names='input')
-    binary_variables = linear_model.binary_var_list(n_classes - 1, name='b')
+    binary_variables = mp_model.binary_var_list(n_classes - 1, name='b')
 
-    linear_model.add_constraint(linear_model.sum(binary_variables) >= 1)
+    mp_model.add_constraint(mp_model.sum(binary_variables) >= 1)
 
     if method == 'tjeng':
-        linear_model = insert_output_constraints_tjeng(linear_model, output_variables, network_output, binary_variables, output_bounds)
+        mp_model = insert_output_constraints_tjeng(mp_model, output_variables, network_output,
+                                                   binary_variables, output_bounds)
     else:
-        linear_model = insert_output_constraints_fischetti(linear_model, output_variables, network_output, binary_variables)
+        mp_model = insert_output_constraints_fischetti(mp_model, output_variables, network_output,
+                                                       binary_variables)
 
     # Filter relevant features (i.e. features that are important for the classification)
     for i in range(len(network_input[0])):
-        linear_model.remove_constraint(input_constraints[i])
+        mp_model.remove_constraint(input_constraints[i])
 
-        linear_model.solve(log_output=False)
+        mp_model.solve(log_output=False)
 
-        if linear_model.solution is not None:
-            linear_model.add_constraint(input_constraints[i])
+        if mp_model.solution is not None:
+            mp_model.add_constraint(input_constraints[i])
 
-    return linear_model.find_matching_linear_constraints('input')
+    return mp_model.find_matching_linear_constraints('input')
 
 
 def main():
-    datasets = [
+    datasets_info = [
         # {'name': 'australian', 'n_classes': 2},
         # {'name': 'auto', 'n_classes': 5},
         # {'name': 'backache', 'n_classes': 2},
@@ -118,15 +119,15 @@ def main():
         }
     }
 
-    for dataset in datasets:
-        dataset_name = dataset['name']
-        n_classes = dataset['n_classes']
+    for dataset_info in datasets_info:
+        dataset_name = dataset_info['name']
+        n_classes = dataset_info['n_classes']
 
-        for config in configurations:
-            print(dataset, config)
+        for configuration in configurations:
+            print(dataset_info, configuration)
 
-            method = config['method']
-            relaxe_constraints = config['relaxe_constraints']
+            method = configuration['method']
+            relaxe_constraints = configuration['relaxe_constraints']
 
             data_test = pd.read_csv(f'datasets/{dataset_name}/test.csv')
             data_train = pd.read_csv(f'datasets/{dataset_name}/train.csv')
@@ -134,14 +135,14 @@ def main():
             dataframe = data_train.append(data_test)
 
             model_path = f'datasets/{dataset_name}/model_2layers_{dataset_name}.h5'
-            model = tf.keras.models.load_model(model_path)
+            keras_model = tf.keras.models.load_model(model_path)
 
             network_codifying_times = []
-            for _ in range(1):
-                start = time()
-                mdl, output_bounds = codify_network(model, dataframe, method, relaxe_constraints)
-                network_codifying_times.append(time() - start)
-                print('Network codifying time:', network_codifying_times[-1])
+
+            start = time()
+            mp_model, output_bounds = codify_network(keras_model, dataframe, method, relaxe_constraints)
+            network_codifying_times.append(time() - start)
+            print('Network codifying time:', network_codifying_times[-1])
 
             minimal_explanation_times = []
             explanation_lengths = []
@@ -157,7 +158,7 @@ def main():
                 network_input = data[i, :-1]   # `network_input` doesn't change
 
                 network_input = tf.reshape(tf.constant(network_input), (1, -1))
-                network_output = model.predict(tf.constant(network_input))[0]    # Therefore, `network_output` also doesn't change
+                network_output = keras_model.predict(tf.constant(network_input))[0]    # Therefore, `network_output` also doesn't change
                 network_output = tf.argmax(network_output)
 
                 """
@@ -165,10 +166,11 @@ def main():
                 Therefore, `network_output` is also constant
                 """
 
-                mdl_aux = mdl.clone()
+                mdl_aux = mp_model.clone()
 
                 start = time()
-                minimal_explanation = get_minimal_explanation(mdl_aux, network_input, network_output, n_classes, method, output_bounds)
+                minimal_explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
+                                                              n_classes, method, output_bounds)
 
                 print(mdl_aux.lp_string)
 
@@ -204,8 +206,8 @@ def main():
     }
 
     index_label = []
-    for dataset in datasets:
-        index_label.extend([f"{dataset['name']}_m", f"{dataset['name']}_a", f"{dataset['name']}_M"])
+    for dataset_info in datasets_info:
+        index_label.extend([f"{dataset_info['name']}_m", f"{dataset_info['name']}_a", f"{dataset_info['name']}_M"])
 
     df = pd.DataFrame(data=df, index=index_label)
     df.to_csv('results2.csv')
