@@ -78,12 +78,13 @@ def get_minimal_explanation(
 
     # Filter relevant features (i.e. features that are important for the classification)
     for i in range(len(network_input[0])):
-        mp_model.remove_constraint(input_constraints[i])
+        constraint = input_constraints[i]
+        mp_model.remove_constraint(constraint)
 
         mp_model.solve(log_output=False)
 
         if mp_model.solution is not None:  # "If the prediction wouldn't change"
-            mp_model.add_constraint(input_constraints[i])
+            mp_model.add_constraint(constraint)
 
     return mp_model.find_matching_linear_constraints('input')
 
