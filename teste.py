@@ -15,7 +15,8 @@ def insert_output_constraints_fischetti(
         network_output,
         binary_variables
 ):
-    variable_output = output_variables[network_output]
+    variable_output = output_variables[network_output]  # variable of name f'o_{network_output}'
+
     aux_var = 0
     for i, output in enumerate(output_variables):
         if i != network_output:
@@ -55,6 +56,8 @@ def get_minimal_explanation(
         method,
         output_bounds=None
 ):
+    # `network_output` is the predicted value
+
     assert not (method == 'tjeng' and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     input_variables = [mp_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
@@ -79,7 +82,7 @@ def get_minimal_explanation(
 
         mp_model.solve(log_output=False)
 
-        if mp_model.solution is not None:
+        if mp_model.solution is not None:  # "If the prediction wouldn't change"
             mp_model.add_constraint(input_constraints[i])
 
     return mp_model.find_matching_linear_constraints('input')
