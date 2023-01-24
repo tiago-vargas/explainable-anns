@@ -7,15 +7,18 @@ import pandas as pd
 
 # For type annotations
 from docplex.mp.model import Model
+from docplex.mp.constr import LinearConstraint
+from docplex.mp.dvar import Var
+from tensorflow.python.framework.ops import EagerTensor
 
 
 def insert_output_constraints_fischetti(
-        mp_model,
-        output_variables,
-        network_output,
-        binary_variables
-):
-    variable_output = output_variables[network_output]  # variable of name f'o_{network_output}'
+        mp_model: Model,
+        output_variables: list[Var | None],
+        network_output: EagerTensor,
+        binary_variables: list[Var]
+) -> Model:
+    variable_output: Var | None = output_variables[network_output]  # variable of name f'o_{network_output}'
 
     aux_var = 0
     for i, output in enumerate(output_variables):
@@ -28,13 +31,13 @@ def insert_output_constraints_fischetti(
 
 
 def insert_output_constraints_tjeng(
-        mp_model,
-        output_variables,
-        network_output,
-        binary_variables,
-        output_bounds
-):
-    variable_output = output_variables[network_output]
+        mp_model: Model,
+        output_variables: list[Var | None],
+        network_output: EagerTensor,
+        binary_variables: list[Var],
+        output_bounds: list[list[float]]
+) -> Model:
+    variable_output: Var | None = output_variables[network_output]
     upper_bounds_diffs = output_bounds[network_output][1] - np.array(output_bounds)[:, 0]  # Output i: oi - oj <= u1 = ui - lj
 
     aux_var = 0
@@ -50,12 +53,12 @@ def insert_output_constraints_tjeng(
 
 def get_minimal_explanation(
         mp_model: Model,
-        network_input,
-        network_output,
-        n_classes,
-        method,
-        output_bounds=None
-):
+        network_input: EagerTensor,
+        network_output: EagerTensor,
+        n_classes: int,
+        method: str,
+        output_bounds: list[list[float]] | None = None
+) -> list[LinearConstraint]:
     # `network_output` is the predicted value
 
     assert not (method == 'tjeng' and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
@@ -81,9 +84,15 @@ def get_minimal_explanation(
     return mp_model.find_matching_linear_constraints('input')
 
 
-def insert_output_constraints(mp_model: Model, method: str, n_classes, network_output, output_bounds) -> Model:
-    output_variables = [mp_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
-    binary_variables = mp_model.binary_var_list(n_classes - 1, name='b')
+def insert_output_constraints(
+        mp_model: Model,
+        method: str,
+        n_classes: int,
+        network_output: EagerTensor,
+        output_bounds: list[list[float]] | None
+) -> Model:
+    output_variables: list[Var | None] = [mp_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    binary_variables: list[Var] = mp_model.binary_var_list(n_classes - 1, name='b')
     mp_model.add_constraint(mp_model.sum(binary_variables) >= 1)
     if method == 'tjeng':
         mp_model = insert_output_constraints_tjeng(mp_model, output_variables, network_output,
