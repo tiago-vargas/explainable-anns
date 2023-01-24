@@ -60,21 +60,13 @@ def get_minimal_explanation(
 
     assert not (method == 'tjeng' and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
+    mp_model = insert_output_constraints(mp_model, method, n_classes, network_output, output_bounds)
+
     input_variables = [mp_model.get_var_by_name(f'x_{i}') for i in range(len(network_input[0]))]
-    output_variables = [mp_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
     input_constraints = mp_model.add_constraints(
         [input_variables[i] == feature.numpy() for i, feature in enumerate(network_input[0])],
-        names='input')
-    binary_variables = mp_model.binary_var_list(n_classes - 1, name='b')
-
-    mp_model.add_constraint(mp_model.sum(binary_variables) >= 1)
-
-    if method == 'tjeng':
-        mp_model = insert_output_constraints_tjeng(mp_model, output_variables, network_output,
-                                                   binary_variables, output_bounds)
-    else:
-        mp_model = insert_output_constraints_fischetti(mp_model, output_variables, network_output,
-                                                       binary_variables)
+        names='input'
+    )
 
     # Filter relevant features (i.e. features that are important for the classification)
     for i in range(len(network_input[0])):
@@ -87,6 +79,20 @@ def get_minimal_explanation(
             mp_model.add_constraint(constraint)
 
     return mp_model.find_matching_linear_constraints('input')
+
+
+def insert_output_constraints(mp_model: Model, method: str, n_classes, network_output, output_bounds) -> Model:
+    output_variables = [mp_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+    binary_variables = mp_model.binary_var_list(n_classes - 1, name='b')
+    mp_model.add_constraint(mp_model.sum(binary_variables) >= 1)
+    if method == 'tjeng':
+        mp_model = insert_output_constraints_tjeng(mp_model, output_variables, network_output,
+                                                   binary_variables, output_bounds)
+    else:
+        mp_model = insert_output_constraints_fischetti(mp_model, output_variables, network_output,
+                                                       binary_variables)
+
+    return mp_model
 
 
 def main():
