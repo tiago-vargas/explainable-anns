@@ -1,9 +1,11 @@
 import numpy as np
 import tensorflow as tf
-from milp import codify_network
+import pandas as pd
+
 from time import time
 from statistics import mean, stdev
-import pandas as pd
+
+from milp import codify_network
 
 # For type annotations
 from docplex.mp.model import Model
@@ -25,7 +27,7 @@ def insert_output_constraints_fischetti(
         if i != network_output:
             p = binary_variables[aux_var]
             aux_var += 1
-            mp_model.add_indicator(p, variable_output <= output, 1)
+            mp_model.add_indicator(binary_var=p, linear_ct=variable_output <= output, active_value=1)
 
     return mp_model
 
@@ -37,9 +39,10 @@ def insert_output_constraints_tjeng(
         binary_variables: list[Var],
         output_bounds: list[list[float]]
 ) -> Model:
+    assert output_bounds is not None and output_bounds != [], 'If the method tjeng is chosen, output_bounds must be passed.'
+
     variable_output: Var | None = output_variables[network_output]
     upper_bounds_diffs = output_bounds[network_output][1] - np.array(output_bounds)[:, 0]  # Output i: oi - oj <= u1 = ui - lj
-
     aux_var = 0
     for i, output in enumerate(output_variables):
         if i != network_output:
@@ -60,8 +63,6 @@ def get_minimal_explanation(
         output_bounds: list[list[float]] | None = None
 ) -> list[LinearConstraint]:
     # `network_output` is the predicted value
-
-    assert not (method == 'tjeng' and output_bounds is None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     mp_model = insert_output_constraints(mp_model, method, n_classes, network_output, output_bounds)
 
@@ -129,11 +130,11 @@ def main():
 
     df = {
         'fischetti': {
-            True:  {'size': [], 'milp_time': [], 'build_time': []},
+            True: {'size': [], 'milp_time': [], 'build_time': []},
             False: {'size': [], 'milp_time': [], 'build_time': []}
         },
         'tjeng': {
-            True:  {'size': [], 'milp_time': [], 'build_time': []},
+            True: {'size': [], 'milp_time': [], 'build_time': []},
             False: {'size': [], 'milp_time': [], 'build_time': []}
         }
     }
@@ -172,26 +173,23 @@ def main():
                 # shape[0]: number of rows
                 # shape[1]: number of columns
 
-                #if i % 50 == 0:
+                # if i % 50 == 0:
                 print(i)
-                network_input = data[i, :-1]   # `network_input` doesn't change
+                network_input = data[i, :-1]  # `network_input` doesn't change...
 
                 network_input = tf.reshape(tf.constant(network_input), (1, -1))
-                network_output = keras_model.predict(tf.constant(network_input))[0]    # Therefore, `network_output` also doesn't change
+                network_output = keras_model.predict(tf.constant(network_input))[
+                    0]  # ...therefore, `network_output` also doesn't change
                 network_output = tf.argmax(network_output)
 
-                """
-                `network_input` is constant
-                Therefore, `network_output` is also constant
-                """
-
-                mdl_aux = mp_model.clone()
+                # `network_input` is constant
+                # Therefore, `network_output` is also constant
 
                 start = time()
-                minimal_explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
+                minimal_explanation = get_minimal_explanation(mp_model, network_input, network_output,
                                                               n_classes, method, output_bounds)
 
-                print(mdl_aux.lp_string)
+                print(mp_model.lp_string)
 
                 minimal_explanation_times.append(time() - start)
 
@@ -201,9 +199,15 @@ def main():
                 for constraint in minimal_explanation:
                     print(constraint)
 
-            df[method][relaxe_constraints]['size'].extend([min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}', max(explanation_lengths)])
-            df[method][relaxe_constraints]['milp_time'].extend([min(minimal_explanation_times), f'{mean(minimal_explanation_times)} +- {stdev(minimal_explanation_times)}', max(minimal_explanation_times)])
-            df[method][relaxe_constraints]['build_time'].extend([min(network_codifying_times), f'{mean(network_codifying_times)} +- {stdev(network_codifying_times)}', max(network_codifying_times)])
+            df[method][relaxe_constraints]['size'].extend(
+                [min(explanation_lengths), f'{mean(explanation_lengths)} +- {stdev(explanation_lengths)}',
+                 max(explanation_lengths)])
+            df[method][relaxe_constraints]['milp_time'].extend([min(minimal_explanation_times),
+                                                                f'{mean(minimal_explanation_times)} +- {stdev(minimal_explanation_times)}',
+                                                                max(minimal_explanation_times)])
+            df[method][relaxe_constraints]['build_time'].extend(
+                [min(network_codifying_times), f'{mean(network_codifying_times)} +- {stdev(network_codifying_times)}',
+                 max(network_codifying_times)])
 
             print_statistics(explanation_lengths, 'Explanation size')
             print_statistics(minimal_explanation_times, 'Explanation time')
@@ -214,7 +218,7 @@ def main():
         # 'fischetti_relaxe_time': df['fischetti'][True]['milp_time'],
         # 'fischetti_relaxe_build_time': df['fischetti'][True]['build_time'],
         'fischetti_not_relaxe_size': df['fischetti'][False]['size'],
-        'fischetti_not_relaxe_time':  df['fischetti'][False]['milp_time'],
+        'fischetti_not_relaxe_time': df['fischetti'][False]['milp_time'],
         'fischetti_not_relaxe_build_time': df['fischetti'][False]['build_time'],
         # 'tjeng_relaxe_size': df['tjeng'][True]['size'],
         # 'tjeng_relaxe_time': df['tjeng'][True]['milp_time'],
@@ -240,5 +244,5 @@ def print_statistics(list: list[float], title: str):
 
 
 if __name__ == '__main__':
-    #cProfile.run('main()', sort='time')
+    # cProfile.run('main()', sort='time')
     main()
