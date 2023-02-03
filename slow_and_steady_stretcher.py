@@ -5,7 +5,9 @@ from docplex.mp.dvar import Var
 
 
 def stretch_interval_to_the_right(model: Model, constraint: LinearConstraint, step: float) -> None:
-    var: Var = constraint.left_expr
-    model.remove_constraint(constraint)
-    constraint = var <= var.ub
-    model.add_constraint(constraint)
+    model.solve()
+
+    x: Var = constraint.left_expr
+    while model.solution is not None and constraint.right_expr.constant <= x.ub:
+        constraint.right_expr.constant += step
+        model.solve()
