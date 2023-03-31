@@ -94,6 +94,7 @@ def insert_output_constraints(
 ) -> Model:
     output_variables: list[Var | None] = [mp_model.get_var_by_name(f'o_{i}') for i in range(n_classes)]
     binary_variables: list[Var] = mp_model.binary_var_list(n_classes - 1, name='b')
+    # Indicates that at least 1 of the binary variables is true
     mp_model.add_constraint(mp_model.sum(binary_variables) >= 1)
     if method == 'tjeng':
         mp_model = insert_output_constraints_tjeng(mp_model, output_variables, network_output,
