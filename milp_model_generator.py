@@ -16,13 +16,13 @@ class MILPModel:
         i = self._model.continuous_var_list(keys=input_size, name='i')
         output_size = network.output_shape[1]
         o = self._model.continuous_var_list(keys=output_size, name='o')
-        s = self._model.continuous_var_list(keys=output_size, name='s')
+        s = self._model.continuous_var_list(keys=output_size, name='s(o)')
 
         i = np.array(i)
         for j in range(output_size):
             self._model.add_constraint(weights.T[j, :] @ i + biases[j] == o[j] - s[j])
 
-        z = self._model.binary_var_list(keys=output_size, name='z')
+        z = self._model.binary_var_list(keys=output_size, name='z(o)')
         for j in range(output_size):
             self._model.add_indicator(binary_var=z[j], active_value=1, linear_ct=(o[j] <= 0))
             self._model.add_indicator(binary_var=z[j], active_value=0, linear_ct=(s[j] <= 0))
