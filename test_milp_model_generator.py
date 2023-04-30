@@ -57,3 +57,28 @@ class TestFormulatingNetwork:
                 'z(o)_1 -> [o_1 <= 0]',
                 'z(o)_1=0 -> [s(o)_1 <= 0]',
             }
+
+    class TestHiddenLayers:
+        def test_1x1x1_network(self):
+            nn = Sequential()
+            nn.add(Dense(units=1, input_dim=1))
+            nn.add(Dense(units=1))
+            weights = np.array([[11]])
+            biases = np.array([50])
+            nn.layers[0].set_weights([weights, biases])
+            weights = np.array([[110]])
+            biases = np.array([500])
+            nn.layers[1].set_weights([weights, biases])
+
+            m = MILPModel(nn)
+
+            strings = {x.to_string() for x in m.formulation}
+            assert strings == {
+                '11i_0+50 == x(0)_0-s(0)_0',
+                'z(0)_0 -> [x(0)_0 <= 0]',
+                'z(0)_0=0 -> [s(0)_0 <= 0]',
+
+                '110x(0)_0+500 == o_0-s(o)_0',
+                'z(o)_0 -> [o_0 <= 0]',
+                'z(o)_0=0 -> [s(o)_0 <= 0]',
+            }
