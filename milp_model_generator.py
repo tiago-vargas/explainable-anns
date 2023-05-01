@@ -38,21 +38,21 @@ class MILPModel:
             for j in range(output_size):
                 self._add_constraint_describing_unit(weights[:, j], x, biases[j], o[j], s_output[j])
 
-            self._add_indicators_for_the_hidden_layer(network, s, x)
+            self._add_indicators_for_the_hidden_layer(network, x, s)
 
-        self._add_indicators_for_the_output_layer(o, s_output, network)
+        self._add_indicators_for_the_output_layer(network, o, s_output)
 
     def _add_constraint_describing_unit(self, weights, previous_layer_units: list[Var], bias, unit: Var, slack_variable: Var):
         self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
-    def _add_indicators_for_the_hidden_layer(self, network: Sequential, slack_variables, x):
+    def _add_indicators_for_the_hidden_layer(self, network: Sequential, units: list[Var], slack_variables: list[Var]):
         layer_size = network.layers[0].units
         z = self._model.binary_var_list(keys=layer_size, name='z(0)')
         for j in range(layer_size):
-            self._model.add_indicator(binary_var=z[j], active_value=1, linear_ct=(x[j] <= 0))
+            self._model.add_indicator(binary_var=z[j], active_value=1, linear_ct=(units[j] <= 0))
             self._model.add_indicator(binary_var=z[j], active_value=0, linear_ct=(slack_variables[j] <= 0))
 
-    def _add_indicators_for_the_output_layer(self, output_variables, slack_variables, network: Sequential):
+    def _add_indicators_for_the_output_layer(self, network: Sequential, output_variables: list[Var], slack_variables: list[Var]):
         output_size = network.output_shape[1]
         z = self._model.binary_var_list(keys=output_size, name='z(o)')
         for i in range(output_size):
