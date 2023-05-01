@@ -2,6 +2,7 @@ import numpy as np
 from docplex.mp.dvar import Var
 from docplex.mp.model import Model
 from keras.models import Sequential
+from numpy import ndarray
 
 
 class MILPModel:
@@ -19,12 +20,11 @@ class MILPModel:
         weights = output_layer.weights[0].numpy()
         biases = output_layer.weights[1].numpy()
 
-        i = np.array(i)
         output_size = network.output_shape[1]
         there_are_no_hidden_layers = (len(network.layers) == 1)
         if there_are_no_hidden_layers:
             for j in range(output_size):
-                self._model.add_constraint(weights.T[j, :] @ i + biases[j] == o[j] - s_output[j])
+                self._add_constraint_describing_unit(weights[:, j], i, biases[j], o[j], s_output[j])
         else:
             layer = network.layers[0]
             w = layer.weights[0].numpy()
@@ -34,12 +34,16 @@ class MILPModel:
             s = _create_and_add_hidden_layer_slack_variables(network, self._model)
 
             for j in range(output_size):
-                self._model.add_constraint(w.T[0, :] @ i + b[0] == x[0] - s[0])
-                self._model.add_constraint(weights.T[j, :] @ x + biases[j] == o[j] - s_output[j])
+                self._add_constraint_describing_unit(w[:, j], i, b[j], x[j], s[j])
+            for j in range(output_size):
+                self._add_constraint_describing_unit(weights[:, j], x, biases[j], o[j], s_output[j])
 
             self._add_indicators_for_the_hidden_layer(network, s, x)
 
         self._add_indicators_for_the_output_layer(o, s_output, network)
+
+    def _add_constraint_describing_unit(self, weights, previous_layer_units: list[Var], bias, unit: Var, slack_variable: Var):
+        self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
     def _add_indicators_for_the_hidden_layer(self, network: Sequential, slack_variables, x):
         layer_size = network.layers[0].units
