@@ -1,19 +1,84 @@
 import numpy as np
-from keras.layers import Dense
 from keras.models import Sequential
+from keras.layers import Dense
+from milp_model_generator import MILPModel
 
 
-def test_codifying_3x2x1_network():
-    model = Sequential()
-    model.add(Dense(units=2, input_dim=3))
-    model.add(Dense(units=1))
-    weights_0 = np.array([[11, 21], [12, 22], [13, 23]])
-    biases_0 = np.array([10, 20])
-    model.layers[0].set_weights([weights_0, biases_0])
-    weights_1 = np.array([[1], [2]])
-    biases_1 = np.array([30])
-    model.layers[1].set_weights([weights_1, biases_1])
+class TestFormulatingNetwork:
+    class TestWithoutHiddenLayers:
+        def test_1x1_network(self):
+            nn = Sequential()
+            nn.add(Dense(units=1, input_dim=1))
+            weights = np.array([[11]])
+            biases = np.array([50])
+            nn.layers[0].set_weights([weights, biases])
 
-    milp_model = MILPModel(model)
+            m = MILPModel(nn)
 
-    assert milp_model.formulation == []
+            strings = {x.to_string() for x in m.formulation}
+            assert strings == {
+                '11i_0+50 == o_0-s(o)_0',
+                'z(o)_0 -> [o_0 <= 0]',
+                'z(o)_0=0 -> [s(o)_0 <= 0]',
+            }
+
+        def test_2x1_network(self):
+            nn = Sequential()
+            nn.add(Dense(units=1, input_dim=2))
+            weights = np.array([[11], [12]])
+            biases = np.array([50])
+            nn.layers[0].set_weights([weights, biases])
+
+            m = MILPModel(nn)
+
+            strings = {x.to_string() for x in m.formulation}
+            assert strings == {
+                '11i_0+12i_1+50 == o_0-s(o)_0',
+                'z(o)_0 -> [o_0 <= 0]',
+                'z(o)_0=0 -> [s(o)_0 <= 0]',
+            }
+
+        def test_1x2_network(self):
+            nn = Sequential()
+            nn.add(Dense(units=2, input_dim=1))
+            weights = np.array([[11, 21]])
+            biases = np.array([50, 70])
+            nn.layers[0].set_weights([weights, biases])
+
+            m = MILPModel(nn)
+
+            strings = {x.to_string() for x in m.formulation}
+            assert strings == {
+                '11i_0+50 == o_0-s(o)_0',
+                'z(o)_0 -> [o_0 <= 0]',
+                'z(o)_0=0 -> [s(o)_0 <= 0]',
+
+                '21i_0+70 == o_1-s(o)_1',
+                'z(o)_1 -> [o_1 <= 0]',
+                'z(o)_1=0 -> [s(o)_1 <= 0]',
+            }
+
+    class TestHiddenLayers:
+        def test_1x1x1_network(self):
+            nn = Sequential()
+            nn.add(Dense(units=1, input_dim=1))
+            nn.add(Dense(units=1))
+            weights = np.array([[11]])
+            biases = np.array([50])
+            nn.layers[0].set_weights([weights, biases])
+            weights = np.array([[110]])
+            biases = np.array([500])
+            nn.layers[1].set_weights([weights, biases])
+
+            m = MILPModel(nn)
+
+            strings = {x.to_string() for x in m.formulation}
+            assert strings == {
+                '11i_0+50 == x(0)_0-s(0)_0',
+                'z(0)_0 -> [x(0)_0 <= 0]',
+                'z(0)_0=0 -> [s(0)_0 <= 0]',
+
+                '110x(0)_0+500 == o_0-s(o)_0',
+                'z(o)_0 -> [o_0 <= 0]',
+                'z(o)_0=0 -> [s(o)_0 <= 0]',
+            }
