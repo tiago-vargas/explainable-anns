@@ -1,8 +1,7 @@
-import numpy as np
 from docplex.mp.dvar import Var
 from docplex.mp.model import Model
+from keras.layers import Dense
 from keras.models import Sequential
-from numpy import ndarray
 
 
 class MILPModel:
@@ -12,35 +11,68 @@ class MILPModel:
     def _codify_model(self, network: Sequential):
         self._model = Model()
 
-        i = _create_and_add_input_variables(network, self._model)
+        _create_and_add_input_variables(network, self._model)
         o = _create_and_add_output_variables(network, self._model)
         s_output = _create_and_add_output_slack_variables(network, self._model)
 
-        output_layer = network.layers[-1]
-        weights = output_layer.weights[0].numpy()
-        biases = output_layer.weights[1].numpy()
-
-        output_size = network.output_shape[1]
         there_are_no_hidden_layers = (len(network.layers) == 1)
         if there_are_no_hidden_layers:
-            for j in range(output_size):
-                self._add_constraint_describing_unit(weights[:, j], i, biases[j], o[j], s_output[j])
+            output_layer = network.layers[-1]
+            self._add_constraints_describing_connections(network, output_layer)
         else:
-            layer = network.layers[0]
-            w = layer.weights[0].numpy()
-            b = layer.weights[1].numpy()
-
             x = _create_and_add_hidden_layer_variables(network, self._model)
             s = _create_and_add_hidden_layer_slack_variables(network, self._model)
 
-            for j in range(output_size):
-                self._add_constraint_describing_unit(w[:, j], i, b[j], x[j], s[j])
-            for j in range(output_size):
-                self._add_constraint_describing_unit(weights[:, j], x, biases[j], o[j], s_output[j])
+            first_layer = network.layers[0]
+            self._add_constraints_describing_connections(network, first_layer)
+
+            # TODO: Add constraints for the remaining hidden layers
+
+            output_layer = network.layers[-1]
+            self._add_constraints_describing_connections(network, output_layer)
 
             self._add_indicators_for_the_hidden_layer(network, x, s)
 
         self._add_indicators_for_the_output_layer(network, o, s_output)
+
+    def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
+        i = network.layers.index(layer)
+        previous_layer_units = self._find_previous_layer_units(i)
+        layer_units = self._find_layer_units(network, i)
+        slack_variables = self._find_layer_slack_variables(network, i)
+
+        output_size = network.output_shape[1]
+        weights = layer.weights[0].numpy()
+        biases = layer.weights[1].numpy()
+        for j in range(output_size):
+            self._add_constraint_describing_unit(weights[:, j], previous_layer_units, biases[j], layer_units[j], slack_variables[j])
+
+    def _find_layer_slack_variables(self, network, layer_index):
+        is_last_layer = (layer_index == len(network.layers) - 1)
+        if is_last_layer:
+            slack_variables = self._model.find_matching_vars('s(o)')
+        else:
+            # TODO: Generalize
+            slack_variables = self._model.find_matching_vars('s(0)')
+        return slack_variables
+
+    def _find_layer_units(self, network, layer_index):
+        is_last_layer = (layer_index == len(network.layers) - 1)
+        if is_last_layer:
+            layer_units = self._model.find_matching_vars('o')
+        else:
+            # TODO: Generalize
+            layer_units = self._model.find_matching_vars('x(0)')
+        return layer_units
+
+    def _find_previous_layer_units(self, layer_index):
+        is_first_hidden_layer = (layer_index == 0)
+        if is_first_hidden_layer:
+            previous_layer_units = self._model.find_matching_vars('i')
+        else:
+            # TODO: Generalize
+            previous_layer_units = self._model.find_matching_vars('x(0)')
+        return previous_layer_units
 
     def _add_constraint_describing_unit(self, weights, previous_layer_units: list[Var], bias, unit: Var, slack_variable: Var):
         self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
