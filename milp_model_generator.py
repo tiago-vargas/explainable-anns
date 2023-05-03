@@ -90,21 +90,20 @@ class MILPModel:
     def _add_indicators_for_the_hidden_layer(self, network: Sequential, layer_index: int):
         units = self._find_layer_units(network, layer_index)
         slack_variables = self._find_layer_slack_variables(network, layer_index)
-        print('layer index:', layer_index, 'units:', units)
-
         layer_size = network.layers[layer_index].units
+        # TODO: Generalize for any layer index
         z = self._model.binary_var_list(keys=layer_size, name='z(0)')
-        for j in range(layer_size):
-            self._model.add_indicator(binary_var=z[j], active_value=1, linear_ct=(units[j] <= 0))
-            self._model.add_indicator(binary_var=z[j], active_value=0, linear_ct=(slack_variables[j] <= 0))
+        for i in range(layer_size):
+            self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(units[i] <= 0))
+            self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
     def _add_indicators_for_the_output_layer(self, network: Sequential):
-        output_variables = self._model.find_matching_vars('o')
+        output_units = self._model.find_matching_vars('o')
         slack_variables = self._model.find_matching_vars('s(o)')
         output_size = network.output_shape[1]
         z = self._model.binary_var_list(keys=output_size, name='z(o)')
         for i in range(output_size):
-            self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_variables[i] <= 0))
+            self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_units[i] <= 0))
             self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
     @property
