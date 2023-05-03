@@ -20,8 +20,8 @@ class MILPModel:
             output_layer = network.layers[-1]
             self._add_constraints_describing_connections(network, output_layer)
         else:
-            x = _create_and_add_hidden_layer_variables(network, self._model)
-            s = _create_and_add_hidden_layer_slack_variables(network, self._model)
+            _create_and_add_hidden_layer_variables(network, self._model)
+            _create_and_add_hidden_layer_slack_variables(network, self._model)
 
             first_layer = network.layers[0]
             self._add_constraints_describing_connections(network, first_layer)
@@ -31,7 +31,7 @@ class MILPModel:
             output_layer = network.layers[-1]
             self._add_constraints_describing_connections(network, output_layer)
 
-            self._add_indicators_for_the_hidden_layer(network, x, s)
+            self._add_indicators_for_the_hidden_layer(network, layer_index=0)
 
         self._add_indicators_for_the_output_layer(network)
 
@@ -87,8 +87,12 @@ class MILPModel:
         weights = layer.weights[0].numpy()[:, unit_index]
         self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
-    def _add_indicators_for_the_hidden_layer(self, network: Sequential, units: list[Var], slack_variables: list[Var]):
-        layer_size = network.layers[0].units
+    def _add_indicators_for_the_hidden_layer(self, network: Sequential, layer_index: int):
+        units = self._find_layer_units(network, layer_index)
+        slack_variables = self._find_layer_slack_variables(network, layer_index)
+        print('layer index:', layer_index, 'units:', units)
+
+        layer_size = network.layers[layer_index].units
         z = self._model.binary_var_list(keys=layer_size, name='z(0)')
         for j in range(layer_size):
             self._model.add_indicator(binary_var=z[j], active_value=1, linear_ct=(units[j] <= 0))
