@@ -12,8 +12,8 @@ class MILPModel:
         self._model = Model()
 
         _create_and_add_input_variables(network, self._model)
-        o = _create_and_add_output_variables(network, self._model)
-        s_output = _create_and_add_output_slack_variables(network, self._model)
+        _create_and_add_output_variables(network, self._model)
+        _create_and_add_output_slack_variables(network, self._model)
 
         there_are_no_hidden_layers = (len(network.layers) == 1)
         if there_are_no_hidden_layers:
