@@ -111,36 +111,31 @@ class MILPModel:
         return self._model.iter_constraints()
 
 
-def _create_and_add_input_variables(network: Sequential, model: Model) -> list[Var]:
+def _create_and_add_input_variables(network: Sequential, model: Model):
     input_size = network.input_shape[1]
     input_variables = model.continuous_var_list(keys=input_size, name='i')
-    return input_variables
 
 
 # TODO: generalize to work for any layer, not just layer 0
-def _create_and_add_hidden_layer_variables(network: Sequential, model: Model) -> list[Var]:
+def _create_and_add_hidden_layer_variables(network: Sequential, model: Model):
     layer_size = network.layers[0].units
     hidden_layer_variables = model.continuous_var_list(keys=layer_size, name='x(0)')
-    return hidden_layer_variables
 
 
 # TODO: generalize to work for any layer, not just layer 0
-def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Model) -> list[Var]:
+def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Model):
     layer_size = network.layers[0].units
     slack_variables = model.continuous_var_list(keys=layer_size, name='s(0)')
-    return slack_variables
 
 
-def _create_and_add_output_variables(network: Sequential, model: Model) -> list[Var]:
+def _create_and_add_output_variables(network: Sequential, model: Model):
     output_size = network.output_shape[1]
     output_variables = model.continuous_var_list(keys=output_size, name='o')
-    return output_variables
 
 
-def _create_and_add_output_slack_variables(network: Sequential, model: Model) -> list[Var]:
+def _create_and_add_output_slack_variables(network: Sequential, model: Model):
     output_size = network.output_shape[1]
     slack_variables = model.continuous_var_list(keys=output_size, name='s(o)')
-    return slack_variables
 
 
 def _get_index_of_unit(unit: Var) -> int:
