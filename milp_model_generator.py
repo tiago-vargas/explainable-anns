@@ -33,7 +33,7 @@ class MILPModel:
 
             self._add_indicators_for_the_hidden_layer(network, x, s)
 
-        self._add_indicators_for_the_output_layer(network, o, s_output)
+        self._add_indicators_for_the_output_layer(network)
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
         i = network.layers.index(layer)
@@ -94,7 +94,9 @@ class MILPModel:
             self._model.add_indicator(binary_var=z[j], active_value=1, linear_ct=(units[j] <= 0))
             self._model.add_indicator(binary_var=z[j], active_value=0, linear_ct=(slack_variables[j] <= 0))
 
-    def _add_indicators_for_the_output_layer(self, network: Sequential, output_variables: list[Var], slack_variables: list[Var]):
+    def _add_indicators_for_the_output_layer(self, network: Sequential):
+        output_variables = self._model.find_matching_vars('o')
+        slack_variables = self._model.find_matching_vars('s(o)')
         output_size = network.output_shape[1]
         z = self._model.binary_var_list(keys=output_size, name='z(o)')
         for i in range(output_size):
