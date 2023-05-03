@@ -37,17 +37,14 @@ class MILPModel:
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
         i = network.layers.index(layer)
-        previous_layer_units = self._find_previous_layer_units(i)
         layer_units = self._find_layer_units(network, i)
-        slack_variables = self._find_layer_slack_variables(network, i)
 
         output_size = network.output_shape[1]
-        weights = layer.weights[0].numpy()
-        biases = layer.weights[1].numpy()
+        layer.weights[0].numpy()
         for j in range(output_size):
-            self._add_constraint_describing_unit(weights[:, j], previous_layer_units, biases[j], layer_units[j], slack_variables[j])
+            self._add_constraint_describing_unit(network, layer_units[j])
 
-    def _find_layer_slack_variables(self, network, layer_index):
+    def _find_layer_slack_variables(self, network: Sequential, layer_index: int) -> list[Var]:
         is_last_layer = (layer_index == len(network.layers) - 1)
         if is_last_layer:
             slack_variables = self._model.find_matching_vars('s(o)')
@@ -56,7 +53,7 @@ class MILPModel:
             slack_variables = self._model.find_matching_vars('s(0)')
         return slack_variables
 
-    def _find_layer_units(self, network, layer_index):
+    def _find_layer_units(self, network: Sequential, layer_index: int) -> list[Var]:
         is_last_layer = (layer_index == len(network.layers) - 1)
         if is_last_layer:
             layer_units = self._model.find_matching_vars('o')
@@ -65,7 +62,7 @@ class MILPModel:
             layer_units = self._model.find_matching_vars('x(0)')
         return layer_units
 
-    def _find_previous_layer_units(self, layer_index):
+    def _find_previous_layer_units(self, layer_index: int) -> list[Var]:
         is_first_hidden_layer = (layer_index == 0)
         if is_first_hidden_layer:
             previous_layer_units = self._model.find_matching_vars('i')
@@ -74,7 +71,20 @@ class MILPModel:
             previous_layer_units = self._model.find_matching_vars('x(0)')
         return previous_layer_units
 
-    def _add_constraint_describing_unit(self, weights, previous_layer_units: list[Var], bias, unit: Var, slack_variable: Var):
+    def _add_constraint_describing_unit(self, network: Sequential, unit: Var):
+        layer_index = _find_layer_of_unit(network, unit)
+
+        previous_layer_units = self._find_previous_layer_units(layer_index)
+
+        unit_index = _get_index_of_unit(unit)
+
+        layer = network.layers[layer_index]
+        biases = layer.weights[1].numpy()
+        bias = biases[unit_index]
+
+        slack_variable = self._find_layer_slack_variables(network, layer_index)[unit_index]
+
+        weights = layer.weights[0].numpy()[:, unit_index]
         self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
     def _add_indicators_for_the_hidden_layer(self, network: Sequential, units: list[Var], slack_variables: list[Var]):
@@ -122,7 +132,21 @@ def _create_and_add_output_variables(network: Sequential, model: Model) -> list[
     return output_variables
 
 
-def _create_and_add_output_slack_variables(network, model: Model) -> list[Var]:
+def _create_and_add_output_slack_variables(network: Sequential, model: Model) -> list[Var]:
     output_size = network.output_shape[1]
     slack_variables = model.continuous_var_list(keys=output_size, name='s(o)')
     return slack_variables
+
+
+def _get_index_of_unit(unit: Var) -> int:
+    return int(unit.name.split('_')[1])
+
+
+def _find_layer_of_unit(network: Sequential, unit: Var) -> int:
+    is_output_variable = (unit.name.startswith('o_'))
+    if is_output_variable:
+        layer_index = len(network.layers) - 1
+    else:
+        # if '(' in unit.name...
+        layer_index = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
+    return layer_index
