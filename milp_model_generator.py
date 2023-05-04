@@ -31,6 +31,7 @@ class MILPModel:
             output_layer = network.layers[-1]
             self._add_constraints_describing_connections(network, output_layer)
 
+            # TODO: Add indicators for the remaining hidden layers
             self._add_indicators_for_the_hidden_layer(network, layer_index=0)
 
         self._add_indicators_for_the_output_layer(network)
@@ -73,7 +74,6 @@ class MILPModel:
 
     def _add_constraint_describing_unit(self, network: Sequential, unit: Var):
         layer_index = _find_layer_of_unit(network, unit)
-
         previous_layer_units = self._find_previous_layer_units(layer_index)
 
         unit_index = _get_index_of_unit(unit)
@@ -83,7 +83,6 @@ class MILPModel:
         bias = biases[unit_index]
 
         slack_variable = self._find_layer_slack_variables(network, layer_index)[unit_index]
-
         weights = layer.weights[0].numpy()[:, unit_index]
         self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
@@ -113,33 +112,33 @@ class MILPModel:
 
 def _create_and_add_input_variables(network: Sequential, model: Model):
     input_size = network.input_shape[1]
-    input_variables = model.continuous_var_list(keys=input_size, name='i')
+    model.continuous_var_list(keys=input_size, name='i')
 
 
 # TODO: generalize to work for any layer, not just layer 0
 def _create_and_add_hidden_layer_variables(network: Sequential, model: Model):
     layer_size = network.layers[0].units
-    hidden_layer_variables = model.continuous_var_list(keys=layer_size, name='x(0)')
+    model.continuous_var_list(keys=layer_size, name='x(0)')
 
 
 # TODO: generalize to work for any layer, not just layer 0
 def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Model):
     layer_size = network.layers[0].units
-    slack_variables = model.continuous_var_list(keys=layer_size, name='s(0)')
+    model.continuous_var_list(keys=layer_size, name='s(0)')
 
 
 def _create_and_add_output_variables(network: Sequential, model: Model):
     output_size = network.output_shape[1]
-    output_variables = model.continuous_var_list(keys=output_size, name='o')
+    model.continuous_var_list(keys=output_size, name='o')
 
 
 def _create_and_add_output_slack_variables(network: Sequential, model: Model):
     output_size = network.output_shape[1]
-    slack_variables = model.continuous_var_list(keys=output_size, name='s(o)')
+    model.continuous_var_list(keys=output_size, name='s(o)')
 
 
 def _get_index_of_unit(unit: Var) -> int:
-    return int(unit.name.split('_')[1])
+    return int(unit.name.split('_')[-1])
 
 
 def _find_layer_of_unit(network: Sequential, unit: Var) -> int:
