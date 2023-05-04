@@ -10,28 +10,29 @@ class MILPModel:
 
     def _codify_model(self, network: Sequential):
         self._model = Model()
+        self._create_and_add_variables_for_the_units(network)
+        self._create_and_add_constraints_for_the_connections_using_relu_activation(network)
 
+    def _create_and_add_constraints_for_the_connections_using_relu_activation(self, network):
+        hidden_layers = network.layers[:-1]
+        for layer_index in range(len(hidden_layers)):
+            _create_and_add_hidden_layer_slack_variables(network, self._model, layer_index)
+        _create_and_add_output_slack_variables(network, self._model)
+        hidden_layers = network.layers[:-1]
+        for layer_index in range(len(hidden_layers)):
+            layer = network.layers[layer_index]
+            self._add_constraints_describing_connections(network, layer)
+            self._add_indicators_for_the_hidden_layer(network, layer_index)
+        output_layer = network.layers[-1]
+        self._add_constraints_describing_connections(network, output_layer)
+        self._add_indicators_for_the_output_layer(network)
+
+    def _create_and_add_variables_for_the_units(self, network):
         _create_and_add_input_variables(network, self._model)
         _create_and_add_output_variables(network, self._model)
-        _create_and_add_output_slack_variables(network, self._model)
-
-        there_are_no_hidden_layers = (len(network.layers) == 1)
-        if there_are_no_hidden_layers:
-            output_layer = network.layers[-1]
-            self._add_constraints_describing_connections(network, output_layer)
-        else:
-            for layer_index in range(len(network.layers[:-1])):
-                _create_and_add_hidden_layer_variables(network, self._model, layer_index)
-                _create_and_add_hidden_layer_slack_variables(network, self._model, layer_index)
-
-                layer = network.layers[layer_index]
-                self._add_constraints_describing_connections(network, layer)
-                self._add_indicators_for_the_hidden_layer(network, layer_index)
-
-            output_layer = network.layers[-1]
-            self._add_constraints_describing_connections(network, output_layer)
-
-        self._add_indicators_for_the_output_layer(network)
+        hidden_layers = network.layers[:-1]
+        for layer_index in range(len(hidden_layers)):
+            _create_and_add_hidden_layer_variables(network, self._model, layer_index)
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
         i = network.layers.index(layer)
