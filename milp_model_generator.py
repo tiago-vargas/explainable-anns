@@ -10,8 +10,26 @@ class MILPModel:
 
     def _codify_model(self, network: Sequential):
         self._model = Model()
-        self._create_and_add_variables_for_the_units(network)
+        self._create_and_add_variables_for_all_units(network)
         self._create_and_add_constraints_for_the_connections_using_relu_activation(network)
+
+    def _create_and_add_variables_for_all_units(self, network):
+        self._create_and_add_variables_for_input_units(network)
+        self._create_and_add_variables_for_hidden_units(network)
+        self._create_and_add_variables_for_output_units(network)
+
+    def _create_and_add_variables_for_input_units(self, network: Sequential):
+        input_size = network.input_shape[1]
+        self._model.continuous_var_list(keys=input_size, name='i')
+
+    def _create_and_add_variables_for_hidden_units(self, network: Sequential):
+        hidden_layers = network.layers[:-1]
+        for layer in hidden_layers:
+            _create_and_add_hidden_layer_variables(network, self._model, layer)
+
+    def _create_and_add_variables_for_output_units(self, network: Sequential):
+        output_size = network.output_shape[1]
+        self._model.continuous_var_list(keys=output_size, name='o')
 
     def _create_and_add_constraints_for_the_connections_using_relu_activation(self, network):
         hidden_layers = network.layers[:-1]
@@ -25,13 +43,6 @@ class MILPModel:
         output_layer = network.layers[-1]
         self._add_constraints_describing_connections(network, output_layer)
         self._add_indicators_for_the_output_layer(network)
-
-    def _create_and_add_variables_for_the_units(self, network):
-        _create_and_add_input_variables(network, self._model)
-        _create_and_add_output_variables(network, self._model)
-        hidden_layers = network.layers[:-1]
-        for layer in hidden_layers:
-            _create_and_add_hidden_layer_variables(network, self._model, layer)
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
         i = network.layers.index(layer)
@@ -109,11 +120,6 @@ class MILPModel:
         return self._model.iter_constraints()
 
 
-def _create_and_add_input_variables(network: Sequential, model: Model):
-    input_size = network.input_shape[1]
-    model.continuous_var_list(keys=input_size, name='i')
-
-
 def _create_and_add_hidden_layer_variables(network: Sequential, model: Model, layer):
     layer_index = network.layers.index(layer)
     layer_size = network.layers[layer_index].units
@@ -124,11 +130,6 @@ def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Mod
     layer_index = network.layers.index(layer)
     layer_size = layer.units
     model.continuous_var_list(keys=layer_size, name='s(%d)' % layer_index)
-
-
-def _create_and_add_output_variables(network: Sequential, model: Model):
-    output_size = network.output_shape[1]
-    model.continuous_var_list(keys=output_size, name='o')
 
 
 def _create_and_add_output_slack_variables(network: Sequential, model: Model):
