@@ -15,14 +15,13 @@ class MILPModel:
 
     def _create_and_add_constraints_for_the_connections_using_relu_activation(self, network):
         hidden_layers = network.layers[:-1]
-        for layer_index in range(len(hidden_layers)):
-            _create_and_add_hidden_layer_slack_variables(network, self._model, layer_index)
+        for layer in hidden_layers:
+            _create_and_add_hidden_layer_slack_variables(network, self._model, layer)
         _create_and_add_output_slack_variables(network, self._model)
         hidden_layers = network.layers[:-1]
-        for layer_index in range(len(hidden_layers)):
-            layer = network.layers[layer_index]
+        for layer in hidden_layers:
             self._add_constraints_describing_connections(network, layer)
-            self._add_indicators_for_the_hidden_layer(network, layer_index)
+            self._add_indicators_for_the_hidden_layer(network, layer)
         output_layer = network.layers[-1]
         self._add_constraints_describing_connections(network, output_layer)
         self._add_indicators_for_the_output_layer(network)
@@ -31,8 +30,8 @@ class MILPModel:
         _create_and_add_input_variables(network, self._model)
         _create_and_add_output_variables(network, self._model)
         hidden_layers = network.layers[:-1]
-        for layer_index in range(len(hidden_layers)):
-            _create_and_add_hidden_layer_variables(network, self._model, layer_index)
+        for layer in hidden_layers:
+            _create_and_add_hidden_layer_variables(network, self._model, layer)
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
         i = network.layers.index(layer)
@@ -86,10 +85,11 @@ class MILPModel:
         weights = layer.weights[0].numpy()[:, unit_index]
         self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
-    def _add_indicators_for_the_hidden_layer(self, network: Sequential, layer_index: int):
+    def _add_indicators_for_the_hidden_layer(self, network: Sequential, layer: Dense):
+        layer_index = network.layers.index(layer)
         units = self._find_layer_units(network, layer_index)
         slack_variables = self._find_layer_slack_variables(network, layer_index)
-        layer_size = network.layers[layer_index].units
+        layer_size = layer.units
         z = self._model.binary_var_list(keys=layer_size, name='z(%d)' % layer_index)
         for i in range(layer_size):
             self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(units[i] <= 0))
@@ -114,13 +114,15 @@ def _create_and_add_input_variables(network: Sequential, model: Model):
     model.continuous_var_list(keys=input_size, name='i')
 
 
-def _create_and_add_hidden_layer_variables(network: Sequential, model: Model, layer_index: int):
+def _create_and_add_hidden_layer_variables(network: Sequential, model: Model, layer):
+    layer_index = network.layers.index(layer)
     layer_size = network.layers[layer_index].units
     model.continuous_var_list(keys=layer_size, name='x(%d)' % layer_index)
 
 
-def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Model, layer_index):
-    layer_size = network.layers[layer_index].units
+def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Model, layer: Dense):
+    layer_index = network.layers.index(layer)
+    layer_size = layer.units
     model.continuous_var_list(keys=layer_size, name='s(%d)' % layer_index)
 
 
