@@ -32,10 +32,8 @@ class MILPModel:
         self._model.continuous_var_list(keys=output_size, name='o')
 
     def _create_and_add_constraints_for_the_connections_using_relu_activation(self, network):
-        hidden_layers = network.layers[:-1]
-        for layer in hidden_layers:
-            _create_and_add_hidden_layer_slack_variables(network, self._model, layer)
-        _create_and_add_output_slack_variables(network, self._model)
+        self._create_and_add_slack_variables_for_all_hidden_layers(network)
+        self._create_and_add_slack_variables_for_the_output_layer(network)
         hidden_layers = network.layers[:-1]
         for layer in hidden_layers:
             self._add_constraints_describing_connections(network, layer)
@@ -43,6 +41,20 @@ class MILPModel:
         output_layer = network.layers[-1]
         self._add_constraints_describing_connections(network, output_layer)
         self._add_indicators_for_the_output_layer(network)
+
+    def _create_and_add_slack_variables_for_all_hidden_layers(self, network):
+        hidden_layers = network.layers[:-1]
+        for layer in hidden_layers:
+            self._create_and_add_slack_variables_for_hidden_layer(network, layer)
+
+    def _create_and_add_slack_variables_for_hidden_layer(self, network: Sequential, layer: Dense):
+        layer_index = network.layers.index(layer)
+        layer_size = layer.units
+        self._model.continuous_var_list(keys=layer_size, name='s(%d)' % layer_index)
+
+    def _create_and_add_slack_variables_for_the_output_layer(self, network: Sequential):
+        output_size = network.output_shape[1]
+        self._model.continuous_var_list(keys=output_size, name='s(o)')
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
         i = network.layers.index(layer)
@@ -126,17 +138,6 @@ def _create_and_add_hidden_layer_variables(network: Sequential, model: Model, la
     model.continuous_var_list(keys=layer_size, name='x(%d)' % layer_index)
 
 
-def _create_and_add_hidden_layer_slack_variables(network: Sequential, model: Model, layer: Dense):
-    layer_index = network.layers.index(layer)
-    layer_size = layer.units
-    model.continuous_var_list(keys=layer_size, name='s(%d)' % layer_index)
-
-
-def _create_and_add_output_slack_variables(network: Sequential, model: Model):
-    output_size = network.output_shape[1]
-    model.continuous_var_list(keys=output_size, name='s(o)')
-
-
 def _get_index_of_unit(unit: Var) -> int:
     return int(unit.name.split('_')[-1])
 
@@ -146,6 +147,6 @@ def _find_layer_of_unit(network: Sequential, unit: Var) -> int:
     if is_output_variable:
         layer_index = len(network.layers) - 1
     else:
-        # if '(' in unit.name...
+        # if '(' is in unit.name...
         layer_index = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
     return layer_index
