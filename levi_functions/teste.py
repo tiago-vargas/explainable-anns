@@ -5,7 +5,7 @@ import pandas as pd
 from time import time
 from statistics import mean, stdev
 
-from milp import codify_network
+from levi_functions.milp import codify_network
 
 # For type annotations
 from docplex.mp.model import Model
