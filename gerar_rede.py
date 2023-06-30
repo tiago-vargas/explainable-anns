@@ -5,13 +5,19 @@ import os
 from time import time
 
 
-dir_path = ''
-num_classes = 2
+dir_path = 'voting'
+# num_classes = 2
 n_neurons = 20
-n_hidden_layers = 4
+n_hidden_layers = 2
 
-data_train = pd.read_csv(os.path.join('datasets', dir_path, 'train.csv')).to_numpy()
-data_test = pd.read_csv(os.path.join('datasets', dir_path, 'test.csv')).to_numpy()
+data_train = pd.read_csv(os.path.join('datasets', dir_path, 'train.csv'))
+data_test = pd.read_csv(os.path.join('datasets', dir_path, 'test.csv'))
+
+# Actually, I have to concatenate them both and the call `nunique` on the result...
+num_classes = max(data_train['target'].nunique(), data_test['target'].nunique())
+
+data_train = data_train.to_numpy()
+data_test = data_test.to_numpy()
 
 x_train, y_train = data_train[:, :-1], data_train[:, -1]
 x_test, y_test = data_test[:, :-1], data_test[:, -1]
