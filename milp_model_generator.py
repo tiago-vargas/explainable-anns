@@ -9,6 +9,9 @@ class MILPModel:
         self._codify_model(network)
 
     def _codify_model(self, network: Sequential):
+        """
+        Codifies a MILP Model from the network and stores it in `self.formulation`.
+        """
         self._model = Model()
         self._create_and_add_variables_for_all_units(network)
         self._create_and_add_constraints_for_the_connections_using_relu_activation(network)
@@ -57,6 +60,10 @@ class MILPModel:
         self._model.continuous_var_list(keys=output_size, name='s(o)')
 
     def _add_constraints_describing_connections(self, network: Sequential, layer: Dense):
+        """
+        Adds constraints to `self._model` describing connections from all units of this `layer` and all the units from
+        the previous layer.
+        """
         i = network.layers.index(layer)
         layer_units = self._find_layer_units(network, i)
 
@@ -95,6 +102,10 @@ class MILPModel:
         return previous_layer_units
 
     def _add_constraint_describing_unit(self, network: Sequential, unit: Var):
+        """
+        Adds constraints to `self._model` describing connections from this `unit` and all the units from the previous
+        layer.
+        """
         layer_index = _find_layer_of_unit(network, unit)
         previous_layer_units = self._find_previous_layer_units(layer_index)
 
