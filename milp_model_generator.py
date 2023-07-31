@@ -16,7 +16,7 @@ class MILPModel:
         self._create_and_add_variables_for_all_units(network)
         self._create_and_add_constraints_for_the_connections_using_relu_activation(network)
 
-    def _create_and_add_variables_for_all_units(self, network):
+    def _create_and_add_variables_for_all_units(self, network: Sequential):
         self._create_and_add_variables_for_input_units(network)
         self._create_and_add_variables_for_all_hidden_units(network)
         self._create_and_add_variables_for_output_units(network)
@@ -34,7 +34,7 @@ class MILPModel:
         output_size = network.output_shape[1]
         self._model.continuous_var_list(keys=output_size, name='o')
 
-    def _create_and_add_constraints_for_the_connections_using_relu_activation(self, network):
+    def _create_and_add_constraints_for_the_connections_using_relu_activation(self, network: Sequential):
         self._create_and_add_slack_variables_for_all_hidden_layers(network)
         self._create_and_add_slack_variables_for_the_output_layer(network)
         hidden_layers = network.layers[:-1]
@@ -45,7 +45,7 @@ class MILPModel:
         self._add_constraints_describing_connections(network, output_layer)
         self._add_indicators_for_the_output_layer(network)
 
-    def _create_and_add_slack_variables_for_all_hidden_layers(self, network):
+    def _create_and_add_slack_variables_for_all_hidden_layers(self, network: Sequential):
         hidden_layers = network.layers[:-1]
         for layer in hidden_layers:
             self._create_and_add_slack_variables_for_hidden_layer(network, layer)
