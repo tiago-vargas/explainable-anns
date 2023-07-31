@@ -15,14 +15,14 @@ class MILPModel:
 
     def _create_and_add_variables_for_all_units(self, network):
         self._create_and_add_variables_for_input_units(network)
-        self._create_and_add_variables_for_hidden_units(network)
+        self._create_and_add_variables_for_all_hidden_units(network)
         self._create_and_add_variables_for_output_units(network)
 
     def _create_and_add_variables_for_input_units(self, network: Sequential):
         input_size = network.input_shape[1]
         self._model.continuous_var_list(keys=input_size, name='i')
 
-    def _create_and_add_variables_for_hidden_units(self, network: Sequential):
+    def _create_and_add_variables_for_all_hidden_units(self, network: Sequential):
         hidden_layers = network.layers[:-1]
         for layer in hidden_layers:
             _create_and_add_hidden_layer_variables(network, self._model, layer)
