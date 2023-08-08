@@ -105,18 +105,18 @@ class MILPModel:
     def _find_layer_slack_variables(self, layer_index: int) -> list[Var]:
         is_last_layer = (layer_index == len(self._network.layers) - 1)
         if is_last_layer:
-            slack_variables = self._model.find_matching_vars('s(o)')
+            result = self._model.find_matching_vars('s(o)')
         else:
-            slack_variables = self._model.find_matching_vars('s(%d)' % layer_index)
-        return slack_variables
+            result = self._model.find_matching_vars('s(%d)' % layer_index)
+        return result
 
     def _find_layer_units(self, layer_index: int) -> list[Var]:
         is_last_layer = (layer_index == len(self._network.layers) - 1)
         if is_last_layer:
-            layer_units = self._model.find_matching_vars('o')
+            result = self._model.find_matching_vars('o')
         else:
-            layer_units = self._model.find_matching_vars('x(%d)' % layer_index)
-        return layer_units
+            result = self._model.find_matching_vars('x(%d)' % layer_index)
+        return result
 
     def _add_constraint_describing_unit(self, unit: Var):
         """
@@ -130,21 +130,21 @@ class MILPModel:
         def find_previous_layer_units(layer_index: int) -> list[Var]:
             is_first_hidden_layer = (layer_index == 0)
             if is_first_hidden_layer:
-                previous_layer_units = self._model.find_matching_vars('i')
+                result = self._model.find_matching_vars('i')
             else:
-                previous_layer_units = self._model.find_matching_vars('x(%d)' % (layer_index - 1))
-            return previous_layer_units
+                result = self._model.find_matching_vars('x(%d)' % (layer_index - 1))
+            return result
 
-        def find_layer_of_unit(unit: Var) -> int:
+        def find_layer_index_of_unit(unit: Var) -> int:
             is_output_variable = (unit.name.startswith('o_'))
             if is_output_variable:
-                layer_index = len(self._network.layers) - 1
+                result = len(self._network.layers) - 1
             else:
                 # if '(' is in unit.name...
-                layer_index = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
-            return layer_index
+                result = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
+            return result
 
-        layer_index = find_layer_of_unit(unit)
+        layer_index = find_layer_index_of_unit(unit)
         previous_layer_units = find_previous_layer_units(layer_index)
 
         unit_index = get_index_of_unit(unit)
