@@ -124,8 +124,8 @@ class MILPModel:
         layer.
         """
 
-        def get_index_of_unit(the_unit: Var) -> int:
-            return int(the_unit.name.split('_')[-1])
+        def get_index_of_unit() -> int:
+            return int(unit.name.split('_')[-1])
 
         def find_previous_layer_units(layer_index: int) -> list[Var]:
             is_first_hidden_layer = (layer_index == 0)
@@ -135,7 +135,7 @@ class MILPModel:
                 result = self._model.find_matching_vars('x(%d)' % (layer_index - 1))
             return result
 
-        def find_layer_index_of_unit(unit: Var) -> int:
+        def find_layer_index_of_unit() -> int:
             is_output_variable = (unit.name.startswith('o_'))
             if is_output_variable:
                 result = len(self._network.layers) - 1
@@ -144,10 +144,10 @@ class MILPModel:
                 result = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
             return result
 
-        layer_index = find_layer_index_of_unit(unit)
+        layer_index = find_layer_index_of_unit()
         previous_layer_units = find_previous_layer_units(layer_index)
 
-        unit_index = get_index_of_unit(unit)
+        unit_index = get_index_of_unit()
 
         layer = self._network.layers[layer_index]
         biases = layer.weights[1].numpy()
