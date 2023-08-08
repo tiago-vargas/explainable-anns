@@ -29,7 +29,7 @@ class MILPModel:
     def _create_and_add_variables_for_all_hidden_units(self):
         hidden_layers = self._network.layers[:-1]
         for layer in hidden_layers:
-            _create_and_add_hidden_layer_variables(self._network, self._model, layer)
+            self._create_and_add_hidden_layer_variables(layer)
 
     def _create_and_add_variables_for_output_units(self):
         output_size = self._network.output_shape[1]
@@ -107,7 +107,7 @@ class MILPModel:
         Adds constraints to `self._model` describing connections from this `unit` and all the units from the previous
         layer.
         """
-        layer_index = _find_layer_of_unit(self._network, unit)
+        layer_index = self._find_layer_of_unit(unit)
         previous_layer_units = self._find_previous_layer_units(layer_index)
 
         unit_index = _get_index_of_unit(unit)
@@ -139,26 +139,24 @@ class MILPModel:
             self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_units[i] <= 0))
             self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
+    def _create_and_add_hidden_layer_variables(self, layer):
+        layer_index = self._network.layers.index(layer)
+        layer_size = self._network.layers[layer_index].units
+        self._model.continuous_var_list(keys=layer_size, name='x(%d)' % layer_index)
+
+    def _find_layer_of_unit(self, unit: Var) -> int:
+        is_output_variable = (unit.name.startswith('o_'))
+        if is_output_variable:
+            layer_index = len(self._network.layers) - 1
+        else:
+            # if '(' is in unit.name...
+            layer_index = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
+        return layer_index
+
     @property
     def formulation(self):
         return self._model.iter_constraints()
 
 
-def _create_and_add_hidden_layer_variables(network: Sequential, model: Model, layer):
-    layer_index = network.layers.index(layer)
-    layer_size = network.layers[layer_index].units
-    model.continuous_var_list(keys=layer_size, name='x(%d)' % layer_index)
-
-
 def _get_index_of_unit(unit: Var) -> int:
     return int(unit.name.split('_')[-1])
-
-
-def _find_layer_of_unit(network: Sequential, unit: Var) -> int:
-    is_output_variable = (unit.name.startswith('o_'))
-    if is_output_variable:
-        layer_index = len(network.layers) - 1
-    else:
-        # if '(' is in unit.name...
-        layer_index = int(unit.name[unit.name.find('(') + 1:unit.name.find(')')])
-    return layer_index
