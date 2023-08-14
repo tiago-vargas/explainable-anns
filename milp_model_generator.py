@@ -128,10 +128,10 @@ class MILPModel:
                     weights = layer.weights[0].numpy()[:, unit_index]
                     self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
-                i = self._network.layers.index(layer)
-                layer_units = _find_layer_units(i)
+                layer_index = self._network.layers.index(layer)
+                layer_units = _find_layer_units(layer_index)
 
-                is_last_layer = (i == len(self._network.layers) - 1)
+                is_last_layer = (layer_index == len(self._network.layers) - 1)
                 if is_last_layer:
                     output_size = self._network.output_shape[1]
                     for j in range(output_size):
