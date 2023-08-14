@@ -67,9 +67,9 @@ class MILPModel:
 
             def add_indicators_for_the_hidden_layer(layer: Dense):
                 layer_index = self._network.layers.index(layer)
+                layer_size = layer.units
                 units = _find_layer_units(layer_index)
                 slack_variables = _find_layer_slack_variables(layer_index)
-                layer_size = layer.units
                 z = self._model.binary_var_list(keys=layer_size, name='z(%d)' % layer_index)
                 for i in range(layer_size):
                     self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(units[i] <= 0))
