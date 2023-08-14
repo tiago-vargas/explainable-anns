@@ -30,10 +30,8 @@ class MILPModel:
 
             def create_and_add_variables_for_all_hidden_units():
                 for layer in self._hidden_layers:
-                    layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
-
                     def create_and_add_hidden_layer_variables():
-                        _ = self._model.continuous_var_list(keys=layer_aux.size, name='x(%d)' % layer_aux.index)
+                        _ = self._model.continuous_var_list(keys=layer.size, name='x(%d)' % layer.index)
 
                     create_and_add_hidden_layer_variables()
 
@@ -48,10 +46,8 @@ class MILPModel:
         def create_and_add_constraints_for_the_connections_using_relu_activation():
             def create_and_add_slack_variables_for_all_hidden_layers():
                 for layer in self._hidden_layers:
-                    layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
-
                     def create_and_add_slack_variables_for_hidden_layer():
-                        _ = self._model.continuous_var_list(keys=layer_aux.size, name='s(%d)' % layer_aux.index)
+                        _ = self._model.continuous_var_list(keys=layer.size, name='s(%d)' % layer.index)
 
                     create_and_add_slack_variables_for_hidden_layer()
 
@@ -74,7 +70,7 @@ class MILPModel:
                 return result
 
             def add_indicators_for_the_hidden_layer():
-                layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
+                layer_aux = layer
                 layer_aux_units = find_layer_units(layer_aux)
                 slack_variables = find_layer_slack_variables(layer_aux)
                 z = self._model.binary_var_list(keys=layer_aux.size, name='z(%d)' % layer_aux.index)
@@ -140,7 +136,7 @@ class MILPModel:
             create_and_add_slack_variables_for_all_hidden_layers()
             create_and_add_slack_variables_for_the_output_layer()
             for layer in self._hidden_layers:
-                add_constraints_describing_connections(self._Layer(layer, LayerType.HIDDEN_LAYER, self._network))
+                add_constraints_describing_connections(layer)
                 add_indicators_for_the_hidden_layer()
             output_layer = self._network.layers[-1]
             add_constraints_describing_connections(self._Layer(output_layer, LayerType.OUTPUT_LAYER, self._network))
@@ -155,8 +151,10 @@ class MILPModel:
         return self._model.iter_constraints()
 
     @property
-    def _hidden_layers(self) -> list[Dense]:
-        return self._network.layers[:-1]
+    def _hidden_layers(self) -> Iterator[_Layer]:
+        hidden_layers = self._network.layers[:-1]
+        result = map(lambda x: self._Layer(x, LayerType.HIDDEN_LAYER, self._network), hidden_layers)
+        return result
 
 
 class LayerType(Enum):
