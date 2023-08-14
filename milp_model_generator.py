@@ -1,3 +1,6 @@
+from typing import Iterator
+
+from docplex.mp.constr import LinearConstraint, IndicatorConstraint
 from docplex.mp.dvar import Var
 from docplex.mp.model import Model
 from keras.layers import Dense
@@ -157,9 +160,9 @@ class MILPModel:
         create_and_add_constraints_for_the_connections_using_relu_activation()
 
     @property
-    def formulation(self):
+    def formulation(self) -> Iterator[LinearConstraint | IndicatorConstraint]:
         return self._model.iter_constraints()
 
     @property
-    def _hidden_layers(self):
+    def _hidden_layers(self) -> list[Dense]:
         return self._network.layers[:-1]
