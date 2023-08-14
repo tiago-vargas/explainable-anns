@@ -24,19 +24,19 @@ class MILPModel:
         def create_and_add_variables_for_all_units():
             def create_and_add_variables_for_input_units():
                 input_size = self._network.input_shape[1]
-                self._model.continuous_var_list(keys=input_size, name='i')
+                _ = self._model.continuous_var_list(keys=input_size, name='i')
 
             def create_and_add_variables_for_all_hidden_units():
                 for layer in self._hidden_layers:
                     def create_and_add_hidden_layer_variables():
                         layer_aux = self._Layer(layer, self._network)
-                        self._model.continuous_var_list(keys=layer_aux.size, name='x(%d)' % layer_aux.index)
+                        _ = self._model.continuous_var_list(keys=layer_aux.size, name='x(%d)' % layer_aux.index)
 
                     create_and_add_hidden_layer_variables()
 
             def create_and_add_variables_for_output_units():
                 output_size = self._network.output_shape[1]
-                self._model.continuous_var_list(keys=output_size, name='o')
+                _ = self._model.continuous_var_list(keys=output_size, name='o')
 
             create_and_add_variables_for_input_units()
             create_and_add_variables_for_all_hidden_units()
@@ -47,13 +47,13 @@ class MILPModel:
                 for layer in self._hidden_layers:
                     def create_and_add_slack_variables_for_hidden_layer():
                         layer_aux = self._Layer(layer, self._network)
-                        self._model.continuous_var_list(keys=layer_aux.size, name='s(%d)' % layer_aux.index)
+                        _ = self._model.continuous_var_list(keys=layer_aux.size, name='s(%d)' % layer_aux.index)
 
                     create_and_add_slack_variables_for_hidden_layer()
 
             def create_and_add_slack_variables_for_the_output_layer():
                 output_size = self._network.output_shape[1]
-                self._model.continuous_var_list(keys=output_size, name='s(o)')
+                _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
 
             def _find_layer_slack_variables(layer_index: int) -> list[Var]:
                 is_last_layer = (layer_index == len(self._network.layers) - 1)
@@ -77,8 +77,8 @@ class MILPModel:
                 slack_variables = _find_layer_slack_variables(layer_aux.index)
                 z = self._model.binary_var_list(keys=layer_aux.size, name='z(%d)' % layer_aux.index)
                 for i in range(layer_aux.size):
-                    self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_aux_units[i] <= 0))
-                    self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
+                    _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_aux_units[i] <= 0))
+                    _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
             def add_indicators_for_the_output_layer():
                 output_units = self._model.find_matching_vars('o')
@@ -86,8 +86,8 @@ class MILPModel:
                 output_size = self._network.output_shape[1]
                 z = self._model.binary_var_list(keys=output_size, name='z(o)')
                 for i in range(output_size):
-                    self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_units[i] <= 0))
-                    self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
+                    _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_units[i] <= 0))
+                    _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
             def _add_constraints_describing_connections(layer: Dense):
                 """
@@ -131,7 +131,7 @@ class MILPModel:
 
                     slack_variable = _find_layer_slack_variables(layer_index)[unit_index]
                     weights = layer.weights[0].numpy()[:, unit_index]
-                    self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
+                    _ = self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
                 layer_aux = self._Layer(layer, self._network)
                 layer_aux_units = _find_layer_units(layer_aux.index)
