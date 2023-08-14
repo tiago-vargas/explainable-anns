@@ -70,11 +70,11 @@ class MILPModel:
 
             def add_indicators_for_the_hidden_layer(layer: Dense):
                 layer_aux = self._Layer(layer, self._network)
-                units = _find_layer_units(layer_aux.index)
+                layer_aux_units = _find_layer_units(layer_aux.index)
                 slack_variables = _find_layer_slack_variables(layer_aux.index)
                 z = self._model.binary_var_list(keys=layer_aux.size, name='z(%d)' % layer_aux.index)
                 for i in range(layer_aux.size):
-                    self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(units[i] <= 0))
+                    self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_aux_units[i] <= 0))
                     self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
             def add_indicators_for_the_output_layer():
@@ -131,18 +131,17 @@ class MILPModel:
                     self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
                 layer_aux = self._Layer(layer, self._network)
-
-                layer_units = _find_layer_units(layer_aux.index)
+                layer_aux_units = _find_layer_units(layer_aux.index)
 
                 is_last_layer = (layer_aux.index == len(self._network.layers) - 1)
                 if is_last_layer:
                     output_size = self._network.output_shape[1]
                     for j in range(output_size):
-                        _add_constraint_describing_unit(layer_units[j])
+                        _add_constraint_describing_unit(layer_aux_units[j])
                 else:
                     layer_size = layer.units
                     for j in range(layer_size):
-                        _add_constraint_describing_unit(layer_units[j])
+                        _add_constraint_describing_unit(layer_aux_units[j])
 
             create_and_add_slack_variables_for_all_hidden_layers()
             create_and_add_slack_variables_for_the_output_layer()
