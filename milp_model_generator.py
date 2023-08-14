@@ -13,6 +13,7 @@ class MILPModel:
         def __init__(self, layer: Dense, type_: 'LayerType', origin_network: Sequential):
             self.index = origin_network.layers.index(layer)
             self.size = layer.units
+            self.type = type_
 
     def __init__(self, network: Sequential):
         self._network = network
@@ -59,16 +60,14 @@ class MILPModel:
                 _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
 
             def find_layer_slack_variables(layer: MILPModel._Layer) -> list[Var]:
-                is_last_layer = (layer.index == len(self._network.layers) - 1)
-                if is_last_layer:
+                if layer.type == LayerType.OUTPUT_LAYER:
                     result = self._model.find_matching_vars('s(o)')
                 else:
                     result = self._model.find_matching_vars('s(%d)' % layer.index)
                 return result
 
             def find_layer_units(layer: MILPModel._Layer) -> list[Var]:
-                is_last_layer = (layer.index == len(self._network.layers) - 1)
-                if is_last_layer:
+                if layer.type == LayerType.OUTPUT_LAYER:
                     result = self._model.find_matching_vars('o')
                 else:
                     result = self._model.find_matching_vars('x(%d)' % layer.index)
