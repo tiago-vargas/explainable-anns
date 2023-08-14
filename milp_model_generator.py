@@ -24,8 +24,7 @@ class MILPModel:
                     layer_size = self._network.layers[layer_index].units
                     self._model.continuous_var_list(keys=layer_size, name='x(%d)' % layer_index)
 
-                hidden_layers = self._network.layers[:-1]
-                for layer in hidden_layers:
+                for layer in self._hidden_layers:
                     create_and_add_hidden_layer_variables(layer)
 
             def create_and_add_variables_for_output_units():
@@ -43,8 +42,7 @@ class MILPModel:
                     layer_size = layer.units
                     self._model.continuous_var_list(keys=layer_size, name='s(%d)' % layer_index)
 
-                hidden_layers = self._network.layers[:-1]
-                for layer in hidden_layers:
+                for layer in self._hidden_layers:
                     create_and_add_slack_variables_for_hidden_layer(layer)
 
             def create_and_add_slack_variables_for_the_output_layer():
@@ -72,8 +70,7 @@ class MILPModel:
 
             create_and_add_slack_variables_for_all_hidden_layers()
             create_and_add_slack_variables_for_the_output_layer()
-            hidden_layers = self._network.layers[:-1]
-            for layer in hidden_layers:
+            for layer in self._hidden_layers:
                 self._add_constraints_describing_connections(layer)
                 add_indicators_for_the_hidden_layer(layer)
             output_layer = self._network.layers[-1]
@@ -160,3 +157,7 @@ class MILPModel:
     @property
     def formulation(self):
         return self._model.iter_constraints()
+
+    @property
+    def _hidden_layers(self):
+        return self._network.layers[:-1]
