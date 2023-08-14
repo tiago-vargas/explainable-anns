@@ -56,26 +56,26 @@ class MILPModel:
                 output_size = self._network.output_shape[1]
                 _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
 
-            def find_layer_slack_variables(layer_index: int) -> list[Var]:
-                is_last_layer = (layer_index == len(self._network.layers) - 1)
+            def find_layer_slack_variables(layer: MILPModel._Layer) -> list[Var]:
+                is_last_layer = (layer.index == len(self._network.layers) - 1)
                 if is_last_layer:
                     result = self._model.find_matching_vars('s(o)')
                 else:
-                    result = self._model.find_matching_vars('s(%d)' % layer_index)
+                    result = self._model.find_matching_vars('s(%d)' % layer.index)
                 return result
 
-            def find_layer_units(layer_index: int) -> list[Var]:
-                is_last_layer = (layer_index == len(self._network.layers) - 1)
+            def find_layer_units(layer: MILPModel._Layer) -> list[Var]:
+                is_last_layer = (layer.index == len(self._network.layers) - 1)
                 if is_last_layer:
                     result = self._model.find_matching_vars('o')
                 else:
-                    result = self._model.find_matching_vars('x(%d)' % layer_index)
+                    result = self._model.find_matching_vars('x(%d)' % layer.index)
                 return result
 
             def add_indicators_for_the_hidden_layer():
                 layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
-                layer_aux_units = find_layer_units(layer_aux.index)
-                slack_variables = find_layer_slack_variables(layer_aux.index)
+                layer_aux_units = find_layer_units(layer_aux)
+                slack_variables = find_layer_slack_variables(layer_aux)
                 z = self._model.binary_var_list(keys=layer_aux.size, name='z(%d)' % layer_aux.index)
                 for i in range(layer_aux.size):
                     _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_aux_units[i] <= 0))
@@ -130,12 +130,12 @@ class MILPModel:
                     biases = layer.weights[1].numpy()
                     bias = biases[unit_index]
 
-                    slack_variable = find_layer_slack_variables(layer_index)[unit_index]
+                    slack_variable = find_layer_slack_variables(layer_aux)[unit_index]
                     weights = layer.weights[0].numpy()[:, unit_index]
                     _ = self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
                 layer_aux = self._Layer(layer, type_, self._network)
-                layer_aux_units = find_layer_units(layer_aux.index)
+                layer_aux_units = find_layer_units(layer_aux)
 
                 is_last_layer = (layer_aux.index == len(self._network.layers) - 1)
                 if is_last_layer:
