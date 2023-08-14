@@ -29,8 +29,9 @@ class MILPModel:
 
             def create_and_add_variables_for_all_hidden_units():
                 for layer in self._hidden_layers:
+                    layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
+
                     def create_and_add_hidden_layer_variables():
-                        layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
                         _ = self._model.continuous_var_list(keys=layer_aux.size, name='x(%d)' % layer_aux.index)
 
                     create_and_add_hidden_layer_variables()
@@ -46,8 +47,9 @@ class MILPModel:
         def create_and_add_constraints_for_the_connections_using_relu_activation():
             def create_and_add_slack_variables_for_all_hidden_layers():
                 for layer in self._hidden_layers:
+                    layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
+
                     def create_and_add_slack_variables_for_hidden_layer():
-                        layer_aux = self._Layer(layer, LayerType.HIDDEN_LAYER, self._network)
                         _ = self._model.continuous_var_list(keys=layer_aux.size, name='s(%d)' % layer_aux.index)
 
                     create_and_add_slack_variables_for_hidden_layer()
