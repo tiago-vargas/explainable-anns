@@ -122,8 +122,7 @@ class MILPModel:
 
                 layer_units = find_layer_units(layer)
 
-                is_last_layer = (layer.index == len(self._network.layers) - 1)
-                if is_last_layer:
+                if layer.type == LayerType.OUTPUT_LAYER:
                     output_size = self._network.output_shape[1]
                     for j in range(output_size):
                         add_constraint_describing_unit(layer_units[j])
