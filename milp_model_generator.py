@@ -70,12 +70,11 @@ class MILPModel:
                 return result
 
             def add_indicators_for_the_hidden_layer():
-                layer_aux = layer
-                layer_aux_units = find_layer_units(layer_aux)
-                slack_variables = find_layer_slack_variables(layer_aux)
-                z = self._model.binary_var_list(keys=layer_aux.size, name='z(%d)' % layer_aux.index)
-                for i in range(layer_aux.size):
-                    _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_aux_units[i] <= 0))
+                layer_units = find_layer_units(layer)
+                slack_variables = find_layer_slack_variables(layer)
+                z = self._model.binary_var_list(keys=layer.size, name='z(%d)' % layer.index)
+                for i in range(layer.size):
+                    _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_units[i] <= 0))
                     _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
             def add_indicators_for_the_output_layer():
