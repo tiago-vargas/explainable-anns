@@ -94,8 +94,8 @@ class MILPModel:
                 """
                 def add_constraint_describing_unit(unit: Var):
                     """
-                    Adds constraints to `self._model` describing connections from this `unit` and all the units from the previous
-                    layer.
+                    Adds constraints to `self._model` describing connections from this `unit` and all the units from the
+                    previous layer.
                     """
 
                     def get_index_of_unit() -> int:
