@@ -10,7 +10,7 @@ from keras.models import Sequential
 
 class MILPModel:
     class _Layer:
-        def __init__(self, layer: Dense, type_: 'LayerType', origin_network: Sequential):
+        def __init__(self, layer: Dense, type_: 'LayerType', origin_network: Sequential, origin_model: Model):
             self.index = origin_network.layers.index(layer)
             self.size = layer.units
             self.type = type_
@@ -131,7 +131,10 @@ class MILPModel:
                 add_constraints_describing_connections(layer)
                 add_indicators_for_the_hidden_layer()
             output_layer = self._network.layers[-1]
-            add_constraints_describing_connections(self._Layer(output_layer, LayerType.OUTPUT_LAYER, self._network))
+            add_constraints_describing_connections(self._Layer(output_layer,
+                                                               LayerType.OUTPUT_LAYER,
+                                                               self._network,
+                                                               self._model))
             add_indicators_for_the_output_layer()
 
         self._model = Model()
@@ -145,7 +148,7 @@ class MILPModel:
     @property
     def _hidden_layers(self) -> Iterator[_Layer]:
         hidden_layers = self._network.layers[:-1]
-        result = map(lambda x: self._Layer(x, LayerType.HIDDEN_LAYER, self._network), hidden_layers)
+        result = map(lambda x: self._Layer(x, LayerType.HIDDEN_LAYER, self._network, self._model), hidden_layers)
         return result
 
 
