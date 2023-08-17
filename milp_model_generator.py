@@ -128,8 +128,7 @@ class MILPModel:
                     for j in range(output_size):
                         add_constraint_describing_unit(layer_units[j])
                 else:
-                    layer_size = layer.size
-                    for j in range(layer_size):
+                    for j in range(layer.size):
                         add_constraint_describing_unit(layer_units[j])
 
             create_and_add_slack_variables_for_all_hidden_layers()
