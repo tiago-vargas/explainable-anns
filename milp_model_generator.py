@@ -45,7 +45,7 @@ class MILPModel:
         def __init__(self, layer: Dense, origin_network: Sequential, origin_model: Model):
             super().__init__(layer, LayerType.HIDDEN_LAYER, origin_network, origin_model)
 
-        def create_and_add_slack_variables_for_hidden_layer(self):
+        def create_and_add_slack_variables(self):
             _ = self._model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
 
     def __init__(self, network: Sequential):
@@ -79,7 +79,7 @@ class MILPModel:
         def create_and_add_constraints_for_the_connections_using_relu_activation():
             def create_and_add_slack_variables_for_all_hidden_layers():
                 for layer in self._hidden_layers:
-                    layer.create_and_add_slack_variables_for_hidden_layer()
+                    layer.create_and_add_slack_variables()
 
             def create_and_add_slack_variables_for_the_output_layer():
                 output_size = self._network.output_shape[1]
