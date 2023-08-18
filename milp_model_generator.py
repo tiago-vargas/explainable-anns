@@ -19,21 +19,24 @@ class MILPModel:
         def create_and_add_slack_variables_for_hidden_layer(self):
             _ = self._model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
 
-        def find_layer_slack_variables(self) -> list[Var]:
+        @property
+        def slack_variables(self) -> list[Var]:
             if self.type == LayerType.OUTPUT_LAYER:
                 result = self._model.find_matching_vars('s(o)')
             else:
                 result = self._model.find_matching_vars('s(%d)' % self.index)
             return result
 
-        def find_layer_units(self) -> list[Var]:
+        @property
+        def units(self) -> list[Var]:
             if self.type == LayerType.OUTPUT_LAYER:
                 result = self._model.find_matching_vars('o')
             else:
                 result = self._model.find_matching_vars('x(%d)' % self.index)
             return result
 
-        def find_previous_layer_units(self) -> list[Var]:
+        @property
+        def previous_layer_units(self) -> list[Var]:
             is_first_hidden_layer = (self.index == 0)
             if is_first_hidden_layer:
                 result = self._model.find_matching_vars('i')
@@ -79,20 +82,21 @@ class MILPModel:
                 _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
 
             def add_indicators_for_the_hidden_layer():
-                layer_units = layer.find_layer_units()
-                slack_variables = layer.find_layer_slack_variables()
+                layer_units = layer.units
+                slack_variables = layer.slack_variables
                 z = self._model.binary_var_list(keys=layer.size, name='z(%d)' % layer.index)
                 for i in range(layer.size):
                     _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_units[i] <= 0))
                     _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
             def add_indicators_for_the_output_layer():
-                output_units = self._model.find_matching_vars('o')
-                slack_variables = self._model.find_matching_vars('s(o)')
                 output_size = self._network.output_shape[1]
                 z = self._model.binary_var_list(keys=output_size, name='z(o)')
                 for i in range(output_size):
+                    output_units = self._model.find_matching_vars('o')
                     _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_units[i] <= 0))
+
+                    slack_variables = self._model.find_matching_vars('s(o)')
                     _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
 
             def add_constraints_describing_connections(layer: MILPModel._Layer):
@@ -109,7 +113,7 @@ class MILPModel:
                     def get_index_of_unit() -> int:
                         return int(unit.name.split('_')[-1])
 
-                    previous_layer_units = layer.find_previous_layer_units()
+                    previous_layer_units = layer.previous_layer_units
 
                     unit_index = get_index_of_unit()
 
@@ -117,11 +121,11 @@ class MILPModel:
                     biases = keras_layer.weights[1].numpy()
                     bias = biases[unit_index]
 
-                    slack_variable = layer.find_layer_slack_variables()[unit_index]
+                    slack_variable = layer.slack_variables[unit_index]
                     weights = keras_layer.weights[0].numpy()[:, unit_index]
                     _ = self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
 
-                layer_units = layer.find_layer_units()
+                layer_units = layer.units
 
                 for j in range(layer.size):
                     add_constraint_describing_unit(layer_units[j])
