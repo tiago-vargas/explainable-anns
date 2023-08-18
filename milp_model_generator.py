@@ -82,12 +82,14 @@ class MILPModel:
                 _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
 
             def add_indicators_for_the_hidden_layer():
-                layer_units = layer.units
-                slack_variables = layer.slack_variables
                 z = self._model.binary_var_list(keys=layer.size, name='z(%d)' % layer.index)
                 for i in range(layer.size):
-                    _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(layer_units[i] <= 0))
-                    _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
+                    _ = self._model.add_indicator(binary_var=z[i],
+                                                  active_value=1,
+                                                  linear_ct=(layer.units[i] <= 0))
+                    _ = self._model.add_indicator(binary_var=z[i],
+                                                  active_value=0,
+                                                  linear_ct=(layer.slack_variables[i] <= 0))
 
             def add_indicators_for_the_output_layer():
                 output_size = self._network.output_shape[1]
@@ -113,22 +115,18 @@ class MILPModel:
                     def get_index_of_unit() -> int:
                         return int(unit.name.split('_')[-1])
 
-                    previous_layer_units = layer.previous_layer_units
-
                     unit_index = get_index_of_unit()
 
                     keras_layer = self._network.layers[layer.index]
                     biases = keras_layer.weights[1].numpy()
                     bias = biases[unit_index]
 
-                    slack_variable = layer.slack_variables[unit_index]
                     weights = keras_layer.weights[0].numpy()[:, unit_index]
-                    _ = self._model.add_constraint(weights.T @ previous_layer_units + bias == unit - slack_variable)
-
-                layer_units = layer.units
+                    _ = self._model.add_constraint(weights.T @ layer.previous_layer_units + bias
+                                                   == unit - layer.slack_variables[unit_index])
 
                 for j in range(layer.size):
-                    add_constraint_describing_unit(layer_units[j])
+                    add_constraint_describing_unit(layer.units[j])
 
             create_and_add_slack_variables_for_all_hidden_layers()
             create_and_add_slack_variables_for_the_output_layer()
