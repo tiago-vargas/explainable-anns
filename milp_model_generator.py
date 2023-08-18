@@ -48,6 +48,12 @@ class MILPModel:
         def create_and_add_slack_variables(self):
             _ = self._model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
 
+        def add_indicators(self):
+            z = self._model.binary_var_list(keys=self.size, name='z(%d)' % self.index)
+            for i in range(self.size):
+                _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(self.units[i] <= 0))
+                _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(self.slack_variables[i] <= 0))
+
     def __init__(self, network: Sequential):
         self._network = network
         self._codify_model()
@@ -84,16 +90,6 @@ class MILPModel:
             def create_and_add_slack_variables_for_the_output_layer():
                 output_size = self._network.output_shape[1]
                 _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
-
-            def add_indicators_for_the_hidden_layer():
-                z = self._model.binary_var_list(keys=layer.size, name='z(%d)' % layer.index)
-                for i in range(layer.size):
-                    _ = self._model.add_indicator(binary_var=z[i],
-                                                  active_value=1,
-                                                  linear_ct=(layer.units[i] <= 0))
-                    _ = self._model.add_indicator(binary_var=z[i],
-                                                  active_value=0,
-                                                  linear_ct=(layer.slack_variables[i] <= 0))
 
             def add_indicators_for_the_output_layer():
                 output_size = self._network.output_shape[1]
@@ -136,7 +132,7 @@ class MILPModel:
             create_and_add_slack_variables_for_the_output_layer()
             for layer in self._hidden_layers:
                 add_constraints_describing_connections(layer)
-                add_indicators_for_the_hidden_layer()
+                layer.add_indicators()
             output_layer = self._network.layers[-1]
             add_constraints_describing_connections(self._Layer(output_layer,
                                                                LayerType.OUTPUT_LAYER,
