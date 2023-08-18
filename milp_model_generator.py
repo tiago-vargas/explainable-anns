@@ -16,9 +16,6 @@ class MILPModel:
             self.type = type_
             self._model = origin_model
 
-        def create_and_add_slack_variables_for_hidden_layer(self):
-            _ = self._model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
-
         @property
         def slack_variables(self) -> list[Var]:
             if self.type == LayerType.OUTPUT_LAYER:
@@ -43,6 +40,13 @@ class MILPModel:
             else:
                 result = self._model.find_matching_vars('x(%d)' % (self.index - 1))
             return result
+
+    class _HiddenLayer(_Layer):
+        def __init__(self, layer: Dense, origin_network: Sequential, origin_model: Model):
+            super().__init__(layer, LayerType.HIDDEN_LAYER, origin_network, origin_model)
+
+        def create_and_add_slack_variables_for_hidden_layer(self):
+            _ = self._model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
 
     def __init__(self, network: Sequential):
         self._network = network
@@ -149,9 +153,9 @@ class MILPModel:
         return self._model.iter_constraints()
 
     @property
-    def _hidden_layers(self) -> Iterator[_Layer]:
+    def _hidden_layers(self) -> Iterator[_HiddenLayer]:
         hidden_layers = self._network.layers[:-1]
-        result = map(lambda x: self._Layer(x, LayerType.HIDDEN_LAYER, self._network, self._model), hidden_layers)
+        result = map(lambda x: self._HiddenLayer(x, self._network, self._model), hidden_layers)
         return result
 
 
