@@ -14,31 +14,31 @@ class MILPModel:
             self.index = origin_network.layers.index(layer)
             self.size = layer.units
             self.type = type_
-            self._model = origin_model
+            self._docplex_model = origin_model
 
         @property
         def slack_variables(self) -> list[Var]:
             if self.type == LayerType.OUTPUT_LAYER:
-                result = self._model.find_matching_vars('s(o)')
+                result = self._docplex_model.find_matching_vars('s(o)')
             else:
-                result = self._model.find_matching_vars('s(%d)' % self.index)
+                result = self._docplex_model.find_matching_vars('s(%d)' % self.index)
             return result
 
         @property
         def units(self) -> list[Var]:
             if self.type == LayerType.OUTPUT_LAYER:
-                result = self._model.find_matching_vars('o')
+                result = self._docplex_model.find_matching_vars('o')
             else:
-                result = self._model.find_matching_vars('x(%d)' % self.index)
+                result = self._docplex_model.find_matching_vars('x(%d)' % self.index)
             return result
 
         @property
         def previous_layer_units(self) -> list[Var]:
             is_first_hidden_layer = (self.index == 0)
             if is_first_hidden_layer:
-                result = self._model.find_matching_vars('i')
+                result = self._docplex_model.find_matching_vars('i')
             else:
-                result = self._model.find_matching_vars('x(%d)' % (self.index - 1))
+                result = self._docplex_model.find_matching_vars('x(%d)' % (self.index - 1))
             return result
 
     class _HiddenLayer(_Layer):
@@ -46,16 +46,20 @@ class MILPModel:
             super().__init__(layer, LayerType.HIDDEN_LAYER, origin_network, origin_model)
 
         def create_and_add_slack_variables(self):
-            _ = self._model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
+            _ = self._docplex_model.continuous_var_list(keys=self.size, name='s(%d)' % self.index)
 
         def add_indicators(self):
-            z = self._model.binary_var_list(keys=self.size, name='z(%d)' % self.index)
+            z = self._docplex_model.binary_var_list(keys=self.size, name='z(%d)' % self.index)
             for i in range(self.size):
-                _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(self.units[i] <= 0))
-                _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(self.slack_variables[i] <= 0))
+                _ = self._docplex_model.add_indicator(binary_var=z[i],
+                                                      active_value=1,
+                                                      linear_ct=(self.units[i] <= 0))
+                _ = self._docplex_model.add_indicator(binary_var=z[i],
+                                                      active_value=0,
+                                                      linear_ct=(self.slack_variables[i] <= 0))
 
     def __init__(self, network: Sequential):
-        self._network = network
+        self._keras_network = network
         self._codify_model()
 
     def _codify_model(self):
@@ -64,19 +68,19 @@ class MILPModel:
         """
         def create_and_add_variables_for_all_units():
             def create_and_add_variables_for_input_units():
-                input_size = self._network.input_shape[1]
-                _ = self._model.continuous_var_list(keys=input_size, name='i')
+                input_size = self._keras_network.input_shape[1]
+                _ = self._docplex_model.continuous_var_list(keys=input_size, name='i')
 
             def create_and_add_variables_for_all_hidden_units():
                 for layer in self._hidden_layers:
                     def create_and_add_hidden_layer_variables():
-                        _ = self._model.continuous_var_list(keys=layer.size, name='x(%d)' % layer.index)
+                        _ = self._docplex_model.continuous_var_list(keys=layer.size, name='x(%d)' % layer.index)
 
                     create_and_add_hidden_layer_variables()
 
             def create_and_add_variables_for_output_units():
-                output_size = self._network.output_shape[1]
-                _ = self._model.continuous_var_list(keys=output_size, name='o')
+                output_size = self._keras_network.output_shape[1]
+                _ = self._docplex_model.continuous_var_list(keys=output_size, name='o')
 
             create_and_add_variables_for_input_units()
             create_and_add_variables_for_all_hidden_units()
@@ -88,28 +92,32 @@ class MILPModel:
                     layer.create_and_add_slack_variables()
 
             def create_and_add_slack_variables_for_the_output_layer():
-                output_size = self._network.output_shape[1]
-                _ = self._model.continuous_var_list(keys=output_size, name='s(o)')
+                output_size = self._keras_network.output_shape[1]
+                _ = self._docplex_model.continuous_var_list(keys=output_size, name='s(o)')
 
             def add_indicators_for_the_output_layer():
-                output_size = self._network.output_shape[1]
-                z = self._model.binary_var_list(keys=output_size, name='z(o)')
+                output_size = self._keras_network.output_shape[1]
+                z = self._docplex_model.binary_var_list(keys=output_size, name='z(o)')
                 for i in range(output_size):
-                    output_units = self._model.find_matching_vars('o')
-                    _ = self._model.add_indicator(binary_var=z[i], active_value=1, linear_ct=(output_units[i] <= 0))
+                    output_units = self._docplex_model.find_matching_vars('o')
+                    _ = self._docplex_model.add_indicator(binary_var=z[i],
+                                                          active_value=1,
+                                                          linear_ct=(output_units[i] <= 0))
 
-                    slack_variables = self._model.find_matching_vars('s(o)')
-                    _ = self._model.add_indicator(binary_var=z[i], active_value=0, linear_ct=(slack_variables[i] <= 0))
+                    slack_variables = self._docplex_model.find_matching_vars('s(o)')
+                    _ = self._docplex_model.add_indicator(binary_var=z[i],
+                                                          active_value=0,
+                                                          linear_ct=(slack_variables[i] <= 0))
 
             def add_constraints_describing_connections(layer: MILPModel._Layer):
                 """
-                Adds constraints to `self._model` describing connections from all units of this `layer` and all the
-                units from the previous layer.
+                Adds constraints to `self._docplex_model` describing connections from all units of this `layer` and all
+                the units from the previous layer.
                 """
                 def add_constraint_describing_unit(unit: Var):
                     """
-                    Adds constraints to `self._model` describing connections from this `unit` and all the units from the
-                    previous layer.
+                    Adds constraints to `self._docplex_model` describing connections from this `unit` and all the units
+                    from the previous layer.
                     """
 
                     def get_index_of_unit() -> int:
@@ -117,13 +125,13 @@ class MILPModel:
 
                     unit_index = get_index_of_unit()
 
-                    keras_layer = self._network.layers[layer.index]
+                    keras_layer = self._keras_network.layers[layer.index]
                     biases = keras_layer.weights[1].numpy()
                     bias = biases[unit_index]
 
                     weights = keras_layer.weights[0].numpy()[:, unit_index]
-                    _ = self._model.add_constraint(weights.T @ layer.previous_layer_units + bias
-                                                   == unit - layer.slack_variables[unit_index])
+                    _ = self._docplex_model.add_constraint(weights.T @ layer.previous_layer_units + bias
+                                                           == unit - layer.slack_variables[unit_index])
 
                 for j in range(layer.size):
                     add_constraint_describing_unit(layer.units[j])
@@ -133,25 +141,25 @@ class MILPModel:
             for layer in self._hidden_layers:
                 add_constraints_describing_connections(layer)
                 layer.add_indicators()
-            output_layer = self._network.layers[-1]
+            output_layer = self._keras_network.layers[-1]
             add_constraints_describing_connections(self._Layer(output_layer,
                                                                LayerType.OUTPUT_LAYER,
-                                                               self._network,
-                                                               self._model))
+                                                               self._keras_network,
+                                                               self._docplex_model))
             add_indicators_for_the_output_layer()
 
-        self._model = Model()
+        self._docplex_model = Model()
         create_and_add_variables_for_all_units()
         create_and_add_constraints_for_the_connections_using_relu_activation()
 
     @property
     def formulation(self) -> Iterator[LinearConstraint | IndicatorConstraint]:
-        return self._model.iter_constraints()
+        return self._docplex_model.iter_constraints()
 
     @property
     def _hidden_layers(self) -> Iterator[_HiddenLayer]:
-        hidden_layers = self._network.layers[:-1]
-        result = map(lambda x: self._HiddenLayer(x, self._network, self._model), hidden_layers)
+        hidden_layers = self._keras_network.layers[:-1]
+        result = map(lambda x: self._HiddenLayer(x, self._keras_network, self._docplex_model), hidden_layers)
         return result
 
 
