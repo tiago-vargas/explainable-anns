@@ -9,6 +9,18 @@ from keras.models import Sequential
 
 
 class MILPModel:
+    class _Network:
+        def __init__(self, network: Sequential):
+            self._keras_network = network
+
+        @property
+        def input_size(self):
+            return self._keras_network.input_shape[1]
+
+        @property
+        def output_size(self):
+            return self._keras_network.output_shape[1]
+
     class _Layer:
         def __init__(self, layer: Dense, type_: 'LayerType', origin_network: Sequential, origin_model: Model):
             self.index = origin_network.layers.index(layer)
@@ -59,6 +71,7 @@ class MILPModel:
                                                       linear_ct=(self.slack_variables[i] <= 0))
 
     def __init__(self, network: Sequential):
+        self._network = self._Network(network)
         self._keras_network = network
         self._codify_model()
 
@@ -68,8 +81,7 @@ class MILPModel:
         """
         def create_and_add_variables_for_all_units():
             def create_and_add_variables_for_input_units():
-                input_size = self._keras_network.input_shape[1]
-                _ = self._docplex_model.continuous_var_list(keys=input_size, name='i')
+                _ = self._docplex_model.continuous_var_list(keys=self._network.input_size, name='i')
 
             def create_and_add_variables_for_all_hidden_units():
                 for layer in self._hidden_layers:
@@ -79,8 +91,7 @@ class MILPModel:
                     create_and_add_hidden_layer_variables()
 
             def create_and_add_variables_for_output_units():
-                output_size = self._keras_network.output_shape[1]
-                _ = self._docplex_model.continuous_var_list(keys=output_size, name='o')
+                _ = self._docplex_model.continuous_var_list(keys=self._network.output_size, name='o')
 
             create_and_add_variables_for_input_units()
             create_and_add_variables_for_all_hidden_units()
@@ -92,13 +103,11 @@ class MILPModel:
                     layer.create_and_add_slack_variables()
 
             def create_and_add_slack_variables_for_the_output_layer():
-                output_size = self._keras_network.output_shape[1]
-                _ = self._docplex_model.continuous_var_list(keys=output_size, name='s(o)')
+                _ = self._docplex_model.continuous_var_list(keys=self._network.output_size, name='s(o)')
 
             def add_indicators_for_the_output_layer():
-                output_size = self._keras_network.output_shape[1]
-                z = self._docplex_model.binary_var_list(keys=output_size, name='z(o)')
-                for i in range(output_size):
+                z = self._docplex_model.binary_var_list(keys=self._network.output_size, name='z(o)')
+                for i in range(self._network.output_size):
                     output_units = self._docplex_model.find_matching_vars('o')
                     _ = self._docplex_model.add_indicator(binary_var=z[i],
                                                           active_value=1,
